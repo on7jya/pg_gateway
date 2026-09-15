@@ -155,16 +155,6 @@ class AppConfig(BaseModel):
             raise KeyError(name)
         return self.resources[name]
 
-    def identifier_whitelist(self, resource_name: str) -> set[str]:
-        """All SQL identifiers allowed for a resource (table + columns + relation targets)."""
-        rc = self.resource(resource_name)
-        ids = {rc.table, rc.pk, *rc.fields.keys()}
-        if rc.soft_delete.enabled:
-            ids.add(rc.soft_delete.field)
-        for rf in rc.row_filters:
-            ids.add(rf.column)
-        return ids
-
 
 class Settings(BaseModel):
     """Runtime settings from environment."""

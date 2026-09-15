@@ -162,8 +162,6 @@ class ResourceService:
             if rf.column in data:
                 writable = set(writable) | {rf.column}
         filtered = {k: v for k, v in data.items() if k in writable}
-        unknown = set(payload) - writable - {config.pk}
-        # ignore unknown? or reject — reject for safety
         for k in payload:
             fc = config.fields.get(k)
             if fc and (fc.primary_key or fc.auto):
@@ -257,13 +255,7 @@ class ResourceService:
                 columns = list(dict.fromkeys([*columns, *row.keys()]))
         qb = self._qb(name)
         q = qb.build_insert(columns, prepared)
-        try:
-            async with self.db.acquire() as conn:
-                rows = await conn.fetch(q.sql, *q.args)
-        except UniqueViolationError as e:
-            raise ConflictError(str(e), code="UNIQUE_VIOLATION") from e
-        except asyncpg.exceptions.QueryCanceledError as e:
-            raise TimeoutAppError() from e
+        rows = await self._run(q.sql, q.args, many=True)
         return [self._present(name, ctx, dict(r)) for r in rows]
 
     async def upsert(self, name: str, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -286,13 +278,7 @@ class ResourceService:
         update_cols = [c for c in columns if c not in config.upsert_keys and c != config.pk]
         qb = self._qb(name)
         q = qb.build_upsert(columns, prepared, config.upsert_keys, update_cols)
-        try:
-            async with self.db.acquire() as conn:
-                rows = await conn.fetch(q.sql, *q.args)
-        except UniqueViolationError as e:
-            raise ConflictError(str(e), code="UNIQUE_VIOLATION") from e
-        except asyncpg.exceptions.QueryCanceledError as e:
-            raise TimeoutAppError() from e
+        rows = await self._run(q.sql, q.args, many=True)
         return [self._present(name, ctx, dict(r)) for r in rows]
 
     async def bulk_delete(
@@ -310,11 +296,7 @@ class ResourceService:
         qb = self._qb(name)
         soft = config.soft_delete.enabled
         q = qb.build_bulk_delete(ctx, ids=coerced_ids or None, filters=filters, soft=soft)
-        try:
-            async with self.db.acquire() as conn:
-                rows = await conn.fetch(q.sql, *q.args)
-        except asyncpg.exceptions.QueryCanceledError as e:
-            raise TimeoutAppError() from e
+        rows = await self._run(q.sql, q.args, many=True)
         return {"deleted": len(rows), "ids": [str(r[config.pk]) for r in rows]}
 
     async def aggregate(
@@ -352,11 +334,8 @@ class ResourceService:
         include_deleted: bool,
     ) -> list[dict[str, Any]]:
         config = self._resource(name)
-        if len(include) > 1 or (include and "." in include[0]):
-            # depth ≤ 1 — single relation name only
-            pass
         for rel_name in include:
-            if rel_name not in config.relations:
+            if "." in rel_name or rel_name not in config.relations:
                 raise ValidationAppError(f"unknown relation: {rel_name}", code="BAD_INCLUDE")
             rel = config.relations[rel_name]
             related = self._resource(rel.resource)

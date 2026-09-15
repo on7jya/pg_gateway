@@ -68,7 +68,7 @@ class ACLChecker:
             allowed = fields if allowed is None else allowed | fields
         return allowed or set()
 
-    def writable_fields(self, ctx: RequestContext, *, for_create: bool = False) -> set[str]:
+    def writable_fields(self, ctx: RequestContext) -> set[str]:
         base = {
             n
             for n, f in self.config.fields.items()
@@ -88,11 +88,3 @@ class ACLChecker:
     def filter_read_payload(self, ctx: RequestContext, row: dict) -> dict:
         allowed = self.readable_fields(ctx)
         return {k: v for k, v in row.items() if k in allowed}
-
-    def filter_write_payload(self, ctx: RequestContext, payload: dict) -> dict:
-        allowed = self.writable_fields(ctx)
-        unknown = set(payload) - allowed - {self.config.pk}
-        # PK may appear in upsert payloads; strip auto/pk write attempts
-        filtered = {k: v for k, v in payload.items() if k in allowed}
-        # Also allow writing row-filter context columns if declared writable in fields
-        return filtered

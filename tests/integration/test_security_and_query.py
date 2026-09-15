@@ -116,14 +116,23 @@ async def test_include_deleted_list_admin_vs_reader(
     uid = r.json()["id"]
     await client.delete(f"/api/v1/users/{uid}", headers=admin_headers)
 
-    r = await client.get("/api/v1/users", headers=admin_headers)
+    r = await client.get(
+        f"/api/v1/users?filter[email][eq]={email}",
+        headers=admin_headers,
+    )
     assert uid not in {u["id"] for u in r.json()["data"]}
 
-    r = await client.get("/api/v1/users?include_deleted=true", headers=admin_headers)
+    r = await client.get(
+        f"/api/v1/users?include_deleted=true&filter[email][eq]={email}",
+        headers=admin_headers,
+    )
     assert uid in {u["id"] for u in r.json()["data"]}
 
     # Current behavior: readers may also use include_deleted (no role gate on the flag).
-    r = await client.get("/api/v1/users?include_deleted=true", headers=reader_headers)
+    r = await client.get(
+        f"/api/v1/users?include_deleted=true&filter[email][eq]={email}",
+        headers=reader_headers,
+    )
     assert r.status_code == 200
     match = next(u for u in r.json()["data"] if u["id"] == uid)
     assert "deleted_at" not in match

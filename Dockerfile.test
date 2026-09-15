@@ -1,3 +1,5 @@
+# Separate from Dockerfile: installs [dev] extras (pytest/ruff) for make test/lint.
+# App image (Dockerfile) stays lean — runtime deps only via `pip install .`.
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -5,7 +7,8 @@ ENV PYTHONPATH=/app:/app/src \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-COPY requirements.txt .
+COPY pyproject.toml README.md requirements.txt ./
+COPY src ./src
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .

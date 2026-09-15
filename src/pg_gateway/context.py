@@ -11,12 +11,6 @@ class RequestContext:
     request_id: str | None = None
     trusted: bool = False
 
-    def has_role(self, role: str) -> bool:
-        return role in self.roles
-
-    def has_any_role(self, roles: list[str] | tuple[str, ...]) -> bool:
-        return any(r in self.roles for r in roles)
-
 
 _ctx: ContextVar[RequestContext | None] = ContextVar("request_context", default=None)
 

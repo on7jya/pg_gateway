@@ -1,57 +1,62 @@
+# Корневая конфигурация API-шлюза к PostgreSQL.
+
+# --- Параметры HTTP-шлюза ---
 gateway:
-  base_path: /api/v1
+  base_path: /api/v1              # префикс маршрутов ресурсов
   pagination:
-    default_limit: 20
-    max_limit: 100
-  query_timeout_ms: 5000
+    default_limit: 20             # limit по умолчанию
+    max_limit: 100                # верхняя граница limit
+  query_timeout_ms: 5000          # statement_timeout SQL, мс
 
+# --- Авторизация (stub по заголовкам) ---
 authz:
-  mode: header_stub
-  tenant_header: X-Tenant-Id
-  roles_header: X-Roles
-  trust_header: X-Gateway-Token
+  mode: header_stub               # доверенный шлюз передаёт tenant/roles в заголовках
+  tenant_header: X-Tenant-Id      # UUID тенанта
+  roles_header: X-Roles           # роли через запятую
+  trust_header: X-Gateway-Token   # shared-secret (= GATEWAY_TRUST_TOKEN)
 
+# --- Ресурсы (ключ = сегмент URL) ---
 resources:
   users:
-    table: users
-    pk: id
+    table: users                  # таблица PostgreSQL
+    pk: id                        # колонка PK
     soft_delete:
-      enabled: true
-      field: deleted_at
+      enabled: true               # мягкое удаление вместо DELETE
+      field: deleted_at           # колонка метки удаления
     operations:
-      list: true
-      get: true
-      create: true
-      update: true
-      patch: true
-      delete: true
-      batch_create: true
-      bulk_delete: true
-      upsert: true
-      aggregate: true
+      list: true                  # GET коллекция
+      get: true                   # GET по id
+      create: true                # POST
+      update: true                # PUT
+      patch: true                 # PATCH
+      delete: true                # DELETE
+      batch_create: true          # POST /batch
+      bulk_delete: true           # POST /bulk-delete
+      upsert: true                # POST /upsert
+      aggregate: true             # GET /aggregate
     row_filters:
-      - column: tenant_id
-        from_context: tenant_id
-        required: true
+      - column: tenant_id         # колонка изоляции
+        from_context: tenant_id   # поле RequestContext
+        required: true            # без контекста → 403
     fields:
       id:
-        type: uuid
-        read: true
-        write: false
-        primary_key: true
-        auto: true
-        nullable: false
+        type: uuid                # тип значения
+        read: true                # в ответах
+        write: false              # клиент не пишет
+        primary_key: true         # PK
+        auto: true                # генерируется БД/сервером
+        nullable: false           # NOT NULL
       tenant_id:
         type: uuid
         read: true
-        write: false
+        write: false              # штамп из контекста
         required: true
         nullable: false
       email:
         type: string
         read: true
         write: true
-        required: true
+        required: true            # обязателен при create
         nullable: false
       full_name:
         type: string
@@ -75,13 +80,13 @@ resources:
         type: datetime
         read: true
         write: false
-        nullable: true
+        nullable: true            # null = активная запись
     roles:
       admin:
-        operations: [list, get, create, update, patch, delete, batch_create, bulk_delete, upsert, aggregate]
+        operations: [list, get, create, update, patch, delete, batch_create, bulk_delete, upsert, aggregate]  # разрешённые ops
         fields:
-          read: [id, tenant_id, email, full_name, status, created_at, deleted_at]
-          write: [email, full_name, status]
+          read: [id, tenant_id, email, full_name, status, created_at, deleted_at]  # ACL read
+          write: [email, full_name, status]                                         # ACL write
       reader:
         operations: [list, get, aggregate]
         fields:
@@ -89,17 +94,17 @@ resources:
           write: []
     relations:
       orders:
-        resource: orders
-        type: one_to_many
-        local: id
-        foreign: user_id
-    filterable: [email, full_name, status, created_at]
-    sortable: [email, full_name, status, created_at]
-    upsert_keys: [tenant_id, email]
+        resource: orders          # связанный ресурс
+        type: one_to_many         # кардинальность
+        local: id                 # колонка в users
+        foreign: user_id          # колонка в orders
+    filterable: [email, full_name, status, created_at]   # filter[field][op]
+    sortable: [email, full_name, status, created_at]     # sort / -field
+    upsert_keys: [tenant_id, email]                      # ON CONFLICT
     aggregate:
-      allowed_functions: [count]
-      group_by: [status]
-      sum_fields: []
+      allowed_functions: [count]  # разрешённые агрегаты
+      group_by: [status]          # допустимый GROUP BY
+      sum_fields: []              # поля для sum (пусто = sum нет)
 
   orders:
     table: orders
@@ -137,13 +142,13 @@ resources:
         required: true
         nullable: false
       user_id:
-        type: uuid
+        type: uuid                # владелец заказа
         read: true
         write: true
         required: true
         nullable: false
       order_number:
-        type: string
+        type: string              # номер заказа (уникален в тенанте)
         read: true
         write: true
         required: true
@@ -155,7 +160,7 @@ resources:
         required: false
         nullable: false
       total_amount:
-        type: decimal
+        type: decimal             # сумма заказа
         read: true
         write: true
         required: false
@@ -205,8 +210,8 @@ resources:
     table: order_items
     pk: id
     soft_delete:
-      enabled: false
-      field: deleted_at
+      enabled: false              # жёсткий DELETE
+      field: deleted_at           # не используется при enabled=false
     operations:
       list: true
       get: true
@@ -237,13 +242,13 @@ resources:
         required: true
         nullable: false
       order_id:
-        type: uuid
+        type: uuid                # FK на orders
         read: true
         write: true
         required: true
         nullable: false
       sku:
-        type: string
+        type: string              # артикул позиции
         read: true
         write: true
         required: true
