@@ -75,7 +75,7 @@ def create_app(
     app = FastAPI(
         title="PostgreSQL API Gateway",
         version="0.1.0",
-        description="Config-driven PostgreSQL API Gateway",
+        description="Конфигурируемый API-шлюз для PostgreSQL",
         lifespan=lifespan,
         openapi_version="3.1.0",
     )
@@ -90,11 +90,11 @@ def create_app(
         known_roles=_known_roles(config),
     )
 
-    @app.get("/health", tags=["system"])
+    @app.get("/health", tags=["system"], summary="Проверка живости")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    @app.get("/ready", tags=["system"])
+    @app.get("/ready", tags=["system"], summary="Готовность")
     async def ready(request: Request) -> JSONResponse:
         database: Database = request.app.state.db
         try:
@@ -130,7 +130,7 @@ def create_app(
             "type": "apiKey",
             "in": "header",
             "name": config.authz.trust_header,
-            "description": "Shared secret (GATEWAY_TRUST_TOKEN). Required for all API routes.",
+            "description": "Общий секрет (GATEWAY_TRUST_TOKEN). Обязателен для всех API-маршрутов.",
         }
         schemes["TenantId"] = {
             "type": "apiKey",
@@ -141,7 +141,7 @@ def create_app(
             "type": "apiKey",
             "in": "header",
             "name": config.authz.roles_header,
-            "description": "Comma-separated roles from the resource ACL registry.",
+            "description": "Роли через запятую из реестра ACL ресурса.",
         }
         schema["security"] = [{"GatewayToken": [], "TenantId": [], "Roles": []}]
         app.openapi_schema = schema

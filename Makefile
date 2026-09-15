@@ -39,9 +39,9 @@ export-openapi openapi: test-image
 		pg_gateway_test python -c "from pathlib import Path; from pg_gateway.export_openapi import export_openapi; print(export_openapi(Path('/out/openapi.yaml')))"
 
 demo:
-	@echo "Demo trust token: demo-trust-token"
-	@echo "Demo tenant A: 11111111-1111-1111-1111-111111111111"
-	@echo "Headers: -H 'X-Gateway-Token: demo-trust-token' -H 'X-Tenant-Id: 11111111-1111-1111-1111-111111111111' -H 'X-Roles: admin'"
-	@echo "List users:"
+	@echo "Демо trust-токен: demo-trust-token"
+	@echo "Демо tenant A: 11111111-1111-1111-1111-111111111111"
+	@echo "Заголовки: -H 'X-Gateway-Token: demo-trust-token' -H 'X-Tenant-Id: 11111111-1111-1111-1111-111111111111' -H 'X-Roles: admin'"
+	@echo "Список users:"
 	@echo "  curl -s 'http://localhost:8000/api/v1/users' -H 'X-Gateway-Token: demo-trust-token' -H 'X-Tenant-Id: 11111111-1111-1111-1111-111111111111' -H 'X-Roles: admin' | jq"
-	@echo "See README.md for full scenarios."
+	@echo "Полные сценарии — в README.md."

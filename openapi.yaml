@@ -1,18 +1,18 @@
 openapi: 3.1.0
 info:
   title: PostgreSQL API Gateway
-  description: Config-driven PostgreSQL API Gateway
+  description: Конфигурируемый API-шлюз для PostgreSQL
   version: 0.1.0
 paths:
   /health:
     get:
       tags:
       - system
-      summary: Health
+      summary: Проверка живости
       operationId: health_health_get
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -24,11 +24,11 @@ paths:
     get:
       tags:
       - system
-      summary: Ready
+      summary: Готовность
       operationId: ready_ready_get
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema: {}
@@ -36,7 +36,7 @@ paths:
     get:
       tags:
       - users
-      summary: List Items
+      summary: Список
       operationId: list_items_api_v1_users_get
       parameters:
       - name: limit
@@ -81,7 +81,7 @@ paths:
           title: Include Deleted
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -89,7 +89,7 @@ paths:
                 additionalProperties: true
                 title: Response List Items Api V1 Users Get
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -97,7 +97,7 @@ paths:
     post:
       tags:
       - users
-      summary: Create Item
+      summary: Создать
       operationId: create_item_api_v1_users_post
       requestBody:
         required: true
@@ -107,7 +107,7 @@ paths:
               $ref: '#/components/schemas/UsersCreate'
       responses:
         '201':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -115,7 +115,7 @@ paths:
                 additionalProperties: true
                 title: Response Create Item Api V1 Users Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -124,7 +124,7 @@ paths:
     post:
       tags:
       - users
-      summary: Batch Create
+      summary: Пакетное создание
       operationId: batch_create_api_v1_users_batch_post
       requestBody:
         content:
@@ -134,7 +134,7 @@ paths:
         required: true
       responses:
         '201':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -144,7 +144,7 @@ paths:
                 type: array
                 title: Response Batch Create Api V1 Users Batch Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -153,7 +153,7 @@ paths:
     post:
       tags:
       - users
-      summary: Upsert Items
+      summary: Upsert
       operationId: upsert_items_api_v1_users_upsert_post
       requestBody:
         content:
@@ -163,7 +163,7 @@ paths:
         required: true
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -173,7 +173,7 @@ paths:
                 type: array
                 title: Response Upsert Items Api V1 Users Upsert Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -182,7 +182,7 @@ paths:
     post:
       tags:
       - users
-      summary: Bulk Delete
+      summary: Массовое удаление
       operationId: bulk_delete_api_v1_users_bulk_delete_post
       requestBody:
         content:
@@ -192,7 +192,7 @@ paths:
         required: true
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -200,7 +200,7 @@ paths:
                 type: object
                 title: Response Bulk Delete Api V1 Users Bulk Delete Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -209,7 +209,7 @@ paths:
     post:
       tags:
       - users
-      summary: Aggregate
+      summary: Агрегация
       operationId: aggregate_api_v1_users_aggregate_post
       requestBody:
         content:
@@ -219,7 +219,7 @@ paths:
         required: true
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -227,7 +227,7 @@ paths:
                 type: object
                 title: Response Aggregate Api V1 Users Aggregate Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -236,7 +236,7 @@ paths:
     get:
       tags:
       - users
-      summary: Get Item
+      summary: Получить
       operationId: get_item_api_v1_users__item_id__get
       parameters:
       - name: item_id
@@ -262,7 +262,7 @@ paths:
           title: Include Deleted
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -270,7 +270,7 @@ paths:
                 additionalProperties: true
                 title: Response Get Item Api V1 Users  Item Id  Get
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -278,7 +278,7 @@ paths:
     put:
       tags:
       - users
-      summary: Put Item
+      summary: Заменить
       operationId: put_item_api_v1_users__item_id__put
       parameters:
       - name: item_id
@@ -295,7 +295,7 @@ paths:
               $ref: '#/components/schemas/UsersUpdate'
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -303,7 +303,7 @@ paths:
                 additionalProperties: true
                 title: Response Put Item Api V1 Users  Item Id  Put
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -311,7 +311,7 @@ paths:
     patch:
       tags:
       - users
-      summary: Patch Item
+      summary: Обновить частично
       operationId: patch_item_api_v1_users__item_id__patch
       parameters:
       - name: item_id
@@ -328,7 +328,7 @@ paths:
               $ref: '#/components/schemas/UsersPatch'
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -336,7 +336,7 @@ paths:
                 additionalProperties: true
                 title: Response Patch Item Api V1 Users  Item Id  Patch
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -344,7 +344,7 @@ paths:
     delete:
       tags:
       - users
-      summary: Delete Item
+      summary: Удалить
       operationId: delete_item_api_v1_users__item_id__delete
       parameters:
       - name: item_id
@@ -355,7 +355,7 @@ paths:
           title: Item Id
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -363,7 +363,7 @@ paths:
                 additionalProperties: true
                 title: Response Delete Item Api V1 Users  Item Id  Delete
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -372,7 +372,7 @@ paths:
     get:
       tags:
       - orders
-      summary: List Items
+      summary: Список
       operationId: list_items_api_v1_orders_get
       parameters:
       - name: limit
@@ -417,7 +417,7 @@ paths:
           title: Include Deleted
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -425,7 +425,7 @@ paths:
                 additionalProperties: true
                 title: Response List Items Api V1 Orders Get
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -433,7 +433,7 @@ paths:
     post:
       tags:
       - orders
-      summary: Create Item
+      summary: Создать
       operationId: create_item_api_v1_orders_post
       requestBody:
         required: true
@@ -443,7 +443,7 @@ paths:
               $ref: '#/components/schemas/OrdersCreate'
       responses:
         '201':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -451,7 +451,7 @@ paths:
                 additionalProperties: true
                 title: Response Create Item Api V1 Orders Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -460,7 +460,7 @@ paths:
     post:
       tags:
       - orders
-      summary: Batch Create
+      summary: Пакетное создание
       operationId: batch_create_api_v1_orders_batch_post
       requestBody:
         content:
@@ -470,7 +470,7 @@ paths:
         required: true
       responses:
         '201':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -480,7 +480,7 @@ paths:
                 type: array
                 title: Response Batch Create Api V1 Orders Batch Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -489,7 +489,7 @@ paths:
     post:
       tags:
       - orders
-      summary: Upsert Items
+      summary: Upsert
       operationId: upsert_items_api_v1_orders_upsert_post
       requestBody:
         content:
@@ -499,7 +499,7 @@ paths:
         required: true
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -509,7 +509,7 @@ paths:
                 type: array
                 title: Response Upsert Items Api V1 Orders Upsert Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -518,7 +518,7 @@ paths:
     post:
       tags:
       - orders
-      summary: Bulk Delete
+      summary: Массовое удаление
       operationId: bulk_delete_api_v1_orders_bulk_delete_post
       requestBody:
         content:
@@ -528,7 +528,7 @@ paths:
         required: true
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -536,7 +536,7 @@ paths:
                 type: object
                 title: Response Bulk Delete Api V1 Orders Bulk Delete Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -545,7 +545,7 @@ paths:
     post:
       tags:
       - orders
-      summary: Aggregate
+      summary: Агрегация
       operationId: aggregate_api_v1_orders_aggregate_post
       requestBody:
         content:
@@ -555,7 +555,7 @@ paths:
         required: true
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -563,7 +563,7 @@ paths:
                 type: object
                 title: Response Aggregate Api V1 Orders Aggregate Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -572,7 +572,7 @@ paths:
     get:
       tags:
       - orders
-      summary: Get Item
+      summary: Получить
       operationId: get_item_api_v1_orders__item_id__get
       parameters:
       - name: item_id
@@ -598,7 +598,7 @@ paths:
           title: Include Deleted
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -606,7 +606,7 @@ paths:
                 additionalProperties: true
                 title: Response Get Item Api V1 Orders  Item Id  Get
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -614,7 +614,7 @@ paths:
     put:
       tags:
       - orders
-      summary: Put Item
+      summary: Заменить
       operationId: put_item_api_v1_orders__item_id__put
       parameters:
       - name: item_id
@@ -631,7 +631,7 @@ paths:
               $ref: '#/components/schemas/OrdersUpdate'
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -639,7 +639,7 @@ paths:
                 additionalProperties: true
                 title: Response Put Item Api V1 Orders  Item Id  Put
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -647,7 +647,7 @@ paths:
     patch:
       tags:
       - orders
-      summary: Patch Item
+      summary: Обновить частично
       operationId: patch_item_api_v1_orders__item_id__patch
       parameters:
       - name: item_id
@@ -664,7 +664,7 @@ paths:
               $ref: '#/components/schemas/OrdersPatch'
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -672,7 +672,7 @@ paths:
                 additionalProperties: true
                 title: Response Patch Item Api V1 Orders  Item Id  Patch
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -680,7 +680,7 @@ paths:
     delete:
       tags:
       - orders
-      summary: Delete Item
+      summary: Удалить
       operationId: delete_item_api_v1_orders__item_id__delete
       parameters:
       - name: item_id
@@ -691,7 +691,7 @@ paths:
           title: Item Id
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -699,7 +699,7 @@ paths:
                 additionalProperties: true
                 title: Response Delete Item Api V1 Orders  Item Id  Delete
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -708,7 +708,7 @@ paths:
     get:
       tags:
       - order_items
-      summary: List Items
+      summary: Список
       operationId: list_items_api_v1_order_items_get
       parameters:
       - name: limit
@@ -753,7 +753,7 @@ paths:
           title: Include Deleted
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -761,7 +761,7 @@ paths:
                 additionalProperties: true
                 title: Response List Items Api V1 Order Items Get
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -769,7 +769,7 @@ paths:
     post:
       tags:
       - order_items
-      summary: Create Item
+      summary: Создать
       operationId: create_item_api_v1_order_items_post
       requestBody:
         required: true
@@ -779,7 +779,7 @@ paths:
               $ref: '#/components/schemas/OrderItemsCreate'
       responses:
         '201':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -787,7 +787,7 @@ paths:
                 additionalProperties: true
                 title: Response Create Item Api V1 Order Items Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -796,7 +796,7 @@ paths:
     post:
       tags:
       - order_items
-      summary: Batch Create
+      summary: Пакетное создание
       operationId: batch_create_api_v1_order_items_batch_post
       requestBody:
         content:
@@ -806,7 +806,7 @@ paths:
         required: true
       responses:
         '201':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -816,7 +816,7 @@ paths:
                 type: array
                 title: Response Batch Create Api V1 Order Items Batch Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -825,7 +825,7 @@ paths:
     post:
       tags:
       - order_items
-      summary: Upsert Items
+      summary: Upsert
       operationId: upsert_items_api_v1_order_items_upsert_post
       requestBody:
         content:
@@ -835,7 +835,7 @@ paths:
         required: true
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -845,7 +845,7 @@ paths:
                 type: array
                 title: Response Upsert Items Api V1 Order Items Upsert Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -854,7 +854,7 @@ paths:
     post:
       tags:
       - order_items
-      summary: Bulk Delete
+      summary: Массовое удаление
       operationId: bulk_delete_api_v1_order_items_bulk_delete_post
       requestBody:
         content:
@@ -864,7 +864,7 @@ paths:
         required: true
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -872,7 +872,7 @@ paths:
                 type: object
                 title: Response Bulk Delete Api V1 Order Items Bulk Delete Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -881,7 +881,7 @@ paths:
     post:
       tags:
       - order_items
-      summary: Aggregate
+      summary: Агрегация
       operationId: aggregate_api_v1_order_items_aggregate_post
       requestBody:
         content:
@@ -891,7 +891,7 @@ paths:
         required: true
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -899,7 +899,7 @@ paths:
                 type: object
                 title: Response Aggregate Api V1 Order Items Aggregate Post
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -908,7 +908,7 @@ paths:
     get:
       tags:
       - order_items
-      summary: Get Item
+      summary: Получить
       operationId: get_item_api_v1_order_items__item_id__get
       parameters:
       - name: item_id
@@ -934,7 +934,7 @@ paths:
           title: Include Deleted
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -942,7 +942,7 @@ paths:
                 additionalProperties: true
                 title: Response Get Item Api V1 Order Items  Item Id  Get
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -950,7 +950,7 @@ paths:
     put:
       tags:
       - order_items
-      summary: Put Item
+      summary: Заменить
       operationId: put_item_api_v1_order_items__item_id__put
       parameters:
       - name: item_id
@@ -967,7 +967,7 @@ paths:
               $ref: '#/components/schemas/OrderItemsUpdate'
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -975,7 +975,7 @@ paths:
                 additionalProperties: true
                 title: Response Put Item Api V1 Order Items  Item Id  Put
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -983,7 +983,7 @@ paths:
     patch:
       tags:
       - order_items
-      summary: Patch Item
+      summary: Обновить частично
       operationId: patch_item_api_v1_order_items__item_id__patch
       parameters:
       - name: item_id
@@ -1000,7 +1000,7 @@ paths:
               $ref: '#/components/schemas/OrderItemsPatch'
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -1008,7 +1008,7 @@ paths:
                 additionalProperties: true
                 title: Response Patch Item Api V1 Order Items  Item Id  Patch
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -1016,7 +1016,7 @@ paths:
     delete:
       tags:
       - order_items
-      summary: Delete Item
+      summary: Удалить
       operationId: delete_item_api_v1_order_items__item_id__delete
       parameters:
       - name: item_id
@@ -1027,7 +1027,7 @@ paths:
           title: Item Id
       responses:
         '200':
-          description: Successful Response
+          description: Успешный ответ
           content:
             application/json:
               schema:
@@ -1035,7 +1035,7 @@ paths:
                 additionalProperties: true
                 title: Response Delete Item Api V1 Order Items  Item Id  Delete
         '422':
-          description: Validation Error
+          description: Ошибка валидации
           content:
             application/json:
               schema:
@@ -1516,7 +1516,7 @@ components:
       type: apiKey
       in: header
       name: X-Gateway-Token
-      description: Shared secret (GATEWAY_TRUST_TOKEN). Required for all API routes.
+      description: Общий секрет (GATEWAY_TRUST_TOKEN). Обязателен для всех API-маршрутов.
     TenantId:
       type: apiKey
       in: header
@@ -1525,7 +1525,7 @@ components:
       type: apiKey
       in: header
       name: X-Roles
-      description: Comma-separated roles from the resource ACL registry.
+      description: Роли через запятую из реестра ACL ресурса.
 security:
 - GatewayToken: []
   TenantId: []

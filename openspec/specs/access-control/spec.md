@@ -68,7 +68,7 @@
 
 ### Requirement: Проводка AuthzPort
 
-Абстракция `AuthzPort` SHALL существовать для будущей внешней авторизации. Каждая операция ресурса (list/get/create/update/patch/delete/batch/upsert/bulk_delete/aggregate) MUST вызывать `authz.allow(...)` до выполнения и при `false` отвечать 403. Header-stub v1 SHALL проверять trust-контекст и наличие валидной роли ресурса; детальные решения ACL остаются в `ACLChecker`.
+Абстракция `AuthzPort` SHALL существовать для будущей внешней авторизации. Каждая операция ресурса (list/get/create/update/patch/delete/batch/upsert/bulk_delete/aggregate) MUST вызывать `authz.allow(...)` до выполнения и при `false` отвечать 403. Реализация header-stub v1 SHALL проверять trust-контекст и наличие валидной роли ресурса; детальные решения ACL остаются в `ACLChecker`.
 
 #### Scenario: Порт внедряем и вызывается
 

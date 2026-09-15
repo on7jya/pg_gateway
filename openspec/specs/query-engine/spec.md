@@ -35,7 +35,7 @@
 
 ### Requirement: Soft-delete
 
-При включении delete SHALL устанавливать `deleted_at` (настраивается). Lists/gets SHALL исключать soft-deleted строки, если не указано `include_deleted=true`.
+При включении delete SHALL устанавливать `deleted_at` (настраивается). Операции list/get SHALL исключать soft-deleted строки, если не указано `include_deleted=true`.
 
 #### Scenario: Soft-delete скрывает строку
 

@@ -64,7 +64,9 @@ def build_resource_router(
                 include_deleted=include_deleted,
             )
 
-        router.add_api_route(f"/{resource_name}", list_items, methods=["GET"])
+        router.add_api_route(
+            f"/{resource_name}", list_items, methods=["GET"], summary="Список"
+        )
 
     if ops.create:
 
@@ -72,7 +74,11 @@ def build_resource_router(
             return await service.create(resource_name, payload.model_dump(exclude_unset=True))
 
         router.add_api_route(
-            f"/{resource_name}", create_item, methods=["POST"], status_code=201
+            f"/{resource_name}",
+            create_item,
+            methods=["POST"],
+            status_code=201,
+            summary="Создать",
         )
 
     if ops.batch_create:
@@ -82,7 +88,11 @@ def build_resource_router(
             return await service.batch_create(resource_name, items)
 
         router.add_api_route(
-            f"/{resource_name}/batch", batch_create, methods=["POST"], status_code=201
+            f"/{resource_name}/batch",
+            batch_create,
+            methods=["POST"],
+            status_code=201,
+            summary="Пакетное создание",
         )
 
     if ops.upsert:
@@ -91,7 +101,9 @@ def build_resource_router(
             items = [i.model_dump(exclude_unset=True) for i in payload.items]
             return await service.upsert(resource_name, items)
 
-        router.add_api_route(f"/{resource_name}/upsert", upsert_items, methods=["POST"])
+        router.add_api_route(
+            f"/{resource_name}/upsert", upsert_items, methods=["POST"], summary="Upsert"
+        )
 
     if ops.bulk_delete:
 
@@ -104,7 +116,10 @@ def build_resource_router(
             )
 
         router.add_api_route(
-            f"/{resource_name}/bulk-delete", bulk_delete, methods=["POST"]
+            f"/{resource_name}/bulk-delete",
+            bulk_delete,
+            methods=["POST"],
+            summary="Массовое удаление",
         )
 
     if ops.aggregate:
@@ -120,7 +135,12 @@ def build_resource_router(
                 include_deleted=data.get("include_deleted", False),
             )
 
-        router.add_api_route(f"/{resource_name}/aggregate", aggregate, methods=["POST"])
+        router.add_api_route(
+            f"/{resource_name}/aggregate",
+            aggregate,
+            methods=["POST"],
+            summary="Агрегация",
+        )
 
     if ops.get:
 
@@ -137,7 +157,9 @@ def build_resource_router(
                 include_deleted=include_deleted,
             )
 
-        router.add_api_route(f"/{resource_name}/{{item_id}}", get_item, methods=["GET"])
+        router.add_api_route(
+            f"/{resource_name}/{{item_id}}", get_item, methods=["GET"], summary="Получить"
+        )
 
     if ops.update:
 
@@ -146,7 +168,9 @@ def build_resource_router(
                 resource_name, item_id, payload.model_dump(exclude_unset=True)
             )
 
-        router.add_api_route(f"/{resource_name}/{{item_id}}", put_item, methods=["PUT"])
+        router.add_api_route(
+            f"/{resource_name}/{{item_id}}", put_item, methods=["PUT"], summary="Заменить"
+        )
 
     if ops.patch:
 
@@ -155,14 +179,24 @@ def build_resource_router(
                 resource_name, item_id, payload.model_dump(exclude_unset=True)
             )
 
-        router.add_api_route(f"/{resource_name}/{{item_id}}", patch_item, methods=["PATCH"])
+        router.add_api_route(
+            f"/{resource_name}/{{item_id}}",
+            patch_item,
+            methods=["PATCH"],
+            summary="Обновить частично",
+        )
 
     if ops.delete:
 
         async def delete_item(item_id: str) -> dict[str, Any]:
             return await service.delete(resource_name, item_id)
 
-        router.add_api_route(f"/{resource_name}/{{item_id}}", delete_item, methods=["DELETE"])
+        router.add_api_route(
+            f"/{resource_name}/{{item_id}}",
+            delete_item,
+            methods=["DELETE"],
+            summary="Удалить",
+        )
 
     return router
 

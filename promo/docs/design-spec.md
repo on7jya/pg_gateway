@@ -1,46 +1,46 @@
-# pg_gateway promo — design spec (autonomous free creation)
+# pg_gateway promo — дизайн-спека (автономное свободное создание)
 
-## Mode
-Autonomous free creation with locked shot constraints from the user:
-`deck-deal-flyin`, `row-embed`, product close-up inspired by `spotlight-hero-card`.
+## Режим
+Автономное свободное создание с зафиксированными пользователем ограничениями по кадрам:
+`deck-deal-flyin`, `row-embed`, крупный план продукта в духе `spotlight-hero-card`.
 
-## Product brief
-- **Product**: pg_gateway — config-driven FastAPI API Gateway for PostgreSQL
-- **Audience**: backend / platform engineers
-- **Core sell**: YAML config → dynamic routes + ACL + OpenAPI; no hardcoded DB schema
-- **Data**: fictional demo CRM (users/orders/products); no secrets
-- **Format**: 1920×1080 @ 30fps, SFX-only (no BGM)
-- **Language**: English
+## Бриф продукта
+- **Продукт**: pg_gateway — конфигурируемый FastAPI API Gateway для PostgreSQL
+- **Аудитория**: backend / platform-инженеры
+- **Ключевое предложение**: YAML-конфиг → динамические маршруты + ACL + OpenAPI; без жёстко заданной схемы БД
+- **Данные**: вымышленное демо-CRM (users/orders/products); без секретов
+- **Формат**: 1920×1080 @ 30fps, только SFX (без BGM)
+- **Язык онскрина**: English
 
-## Visual direction
-- **Preset**: professional / enterprise (“专业信赖”) with crisp engineer energy
-- **Tokens**
+## Визуальное направление
+- **Пресет**: professional / enterprise («专业信赖») с чёткой инженерной энергией
+- **Токены**
   - bg: `#0b1220` / surface: `#121a2b` / paper panel: `#f4f7fb`
   - ink: `#0f172a` / muted: `#64748b`
-  - accent: `#0d9488` (teal) — not purple
+  - accent: `#0d9488` (teal) — не purple
   - font UI: `"IBM Plex Sans", "Segoe UI", sans-serif`
   - font mono: `"IBM Plex Mono", ui-monospace, monospace`
-- **Motion tokens**: main duration ~21f, ease `bezier(0,0,0.2,1)`; landings may overshoot when metaphor requires bounce (shot-card jurisprudence wins)
+- **Motion-токены**: основная длительность ~21f, ease `bezier(0,0,0.2,1)`; приземления могут overshoot, если метафора требует bounce (побеждает юриспруденция shot-card)
 
-## Feature → shot map
-| Feature | Shot | Why |
-|---------|------|-----|
-| Resource as atomic unit | spotlight-hero-card | Single-hero product close-up |
-| Config expands into many routes | deck-deal-flyin | Density / continuous inflow |
-| Schema fields embed into API surface | row-embed | Structured data growing into page |
+## Карта feature → shot
+| Фича | Кадр | Почему |
+|------|------|--------|
+| Ресурс как атомарная единица | spotlight-hero-card | Одиночный hero, крупный план продукта |
+| Конфиг разворачивается в множество маршрутов | deck-deal-flyin | Плотность / непрерывный приток |
+| Поля схемы встраиваются в API-поверхность | row-embed | Структурированные данные вырастают в страницу |
 
-## Storyboard (frames @30fps)
+## Раскадровка (кадры @30fps)
 | # | from | dur | content | card |
 |---|------|-----|---------|------|
-| 1 | 0 | 139 | Hero resource card spotlight + float + beam | spotlight-hero-card |
+| 1 | 0 | 139 | Spotlight карточки ресурса + float + beam | spotlight-hero-card |
 | 2 | 139 | 40 | Title breath: “YAML in. Routes out.” | title |
-| 3 | 179 | 113 | Deck deal into resource grid | deck-deal-flyin |
+| 3 | 179 | 113 | Раздача колоды в сетку ресурсов | deck-deal-flyin |
 | 4 | 292 | 36 | Title: “Fields land in the API.” | title |
-| 5 | 328 | 68 | Row embed on resource detail | row-embed |
+| 5 | 328 | 68 | Row embed на detail ресурса | row-embed |
 | 6 | 396 | 54 | Brand lockup hold | outro |
-| **Total** | | **450f / 15.0s** | | |
+| **Итого** | | **450f / 15.0s** | | |
 
-## Acceptance frames
+## Acceptance-кадры
 - Spotlight: 48, 90, 130
 - Deck: 20, 70, 110
 - Rows: 24, 50, 66
