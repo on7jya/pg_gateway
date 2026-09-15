@@ -1,0 +1,26 @@
+# OpenSpec configuration for pg_gateway
+schema: spec-driven
+
+context: |
+  Config-driven PostgreSQL API Gateway.
+  Routes and schemas are generated from YAML config (config/config.yaml).
+  No SQLAlchemy ORM — asyncpg with parameterized SQL; identifiers from config whitelist only.
+  Auth v1: trusted headers X-Tenant-Id and X-Roles. AuthzPort stub for future external authz.
+  OpenAPI is an export artifact, not the source of truth.
+
+rules:
+  gateway-routing:
+    - Generate FastAPI routes only from YAML resource definitions
+    - Follow approved path contract under /api/v1/{resource}
+    - Keep OpenAPI as an export of the running FastAPI app (OpenAPI 3.1)
+  access-control:
+    - Enforce entity CRUD flags, field read/write, and role ACL from config
+    - Apply row_filters from request context (tenant_id required when configured)
+    - Missing required tenant context must return 403
+  query-engine:
+    - Identifiers must come from config whitelist; never concatenate user input as SQL identifiers
+    - Support declared filters, sort, pagination, soft-delete, joins (depth ≤1), aggregates
+    - Use transactions for CUD / batch / upsert / bulk-delete
+  errors:
+    - Error body shape is always {detail, code}
+    - Map not found → 404, unique violation → 409, validation → 400, timeout → 504

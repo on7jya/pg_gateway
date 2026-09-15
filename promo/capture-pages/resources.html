@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>pg_gateway — resources</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 1920px;
+      background: #0b1220;
+      color: #e2e8f0;
+      font-family: "IBM Plex Sans", sans-serif;
+    }
+    #page {
+      position: relative;
+      width: 1920px;
+      height: 1746px;
+      background: linear-gradient(180deg, #0b1220 0%, #121a2b 40%, #0f172a 100%);
+    }
+    header {
+      position: absolute; left: 0; top: 0; width: 1920px; height: 61px;
+      display: flex; align-items: center; gap: 18px;
+      padding: 0 40px;
+      border-bottom: 1px solid rgba(148,163,184,0.18);
+      background: rgba(15,23,42,0.92);
+    }
+    .logo {
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: #5eead4;
+    }
+    .crumb { color: #94a3b8; font-size: 14px; }
+    .pill {
+      margin-left: auto;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      color: #0f172a;
+      background: #2dd4bf;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    .hero {
+      position: absolute; left: 408px; top: 92px; width: 1104px;
+    }
+    .hero h1 {
+      font-size: 42px; font-weight: 700; color: #f8fafc; letter-spacing: -0.02em;
+    }
+    .hero p { margin-top: 8px; color: #94a3b8; font-size: 18px; }
+    .card {
+      position: absolute;
+      border-radius: 16px;
+      background: #f4f7fb;
+      color: #0f172a;
+      overflow: hidden;
+      box-shadow: 0 18px 40px rgba(2,6,23,0.35);
+      border: 1px solid rgba(148,163,184,0.25);
+    }
+    .card .top {
+      height: 8px;
+      background: linear-gradient(90deg, #0d9488, #14b8a6);
+    }
+    .card .body { padding: 18px 20px 16px; }
+    .card .kicker {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      color: #0d9488;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+    .card h3 {
+      margin-top: 8px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+      min-height: 50px;
+    }
+    .card .meta {
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .tag.accent { background: #ccfbf1; color: #0f766e; }
+  </style>
+</head>
+<body>
+  <div id="page">
+    <header>
+      <div class="logo">pg_gateway</div>
+      <div class="crumb">config.yaml → dynamic resources</div>
+      <div class="pill">OpenAPI 3.1 export</div>
+    </header>
+    <div class="hero">
+      <h1>Resources from YAML — not ORM models</h1>
+      <p>Whitelist tables &amp; fields once. FastAPI routes, ACL, and schemas appear at startup.</p>
+    </div>
+
+    <!-- cards aligned to live-layout.json projects.cards -->
+    <div class="card" data-card="1" style="left:408px;top:247px;width:357.328125px;height:288px">
+      <div class="top"></div><div class="body">
+        <div class="kicker">/api/v1/users</div>
+        <h3>Users resource</h3>
+        <div class="meta"><span class="tag accent">list · get · create</span><span class="tag">tenant ACL</span><span class="tag">soft-delete</span></div>
+      </div>
+    </div>
+    <div class="card" data-card="2" style="left:781.328125px;top:247px;width:357.328125px;height:288px">
+      <div class="top"></div><div class="body">
+        <div class="kicker">/api/v1/orders</div>
+        <h3>Orders resource</h3>
+        <div class="meta"><span class="tag accent">filters</span><span class="tag">sort</span><span class="tag">include=users</span></div>
+      </div>
+    </div>
+    <div class="card" data-card="3" style="left:408px;top:616px;width:357.328125px;height:312px">
+      <div class="top"></div><div class="body">
+        <div class="kicker">YAML fields</div>
+        <h3>Type-safe field map</h3>
+        <div class="meta"><span class="tag">uuid · string · datetime</span><span class="tag accent">read/write</span></div>
+      </div>
+    </div>
+    <div class="card" data-card="4" style="left:781.328125px;top:616px;width:357.328125px;height:312px">
+      <div class="top"></div><div class="body">
+        <div class="kicker">ACLChecker</div>
+        <h3>Role × operation gate</h3>
+        <div class="meta"><span class="tag accent">admin</span><span class="tag">reader</span><span class="tag">field deny</span></div>
+      </div>
+    </div>
+    <div class="card" data-card="5" style="left:1154.65625px;top:616px;width:357.34375px;height:312px">
+      <div class="top"></div><div class="body">
+        <div class="kicker">QueryBuilder</div>
+        <h3>Safe parameterized SQL</h3>
+        <div class="meta"><span class="tag">asyncpg</span><span class="tag accent">whitelist IDs</span></div>
+      </div>
+    </div>
+    <div class="card" data-card="6" style="left:408px;top:1009px;width:357.328125px;height:312px">
+      <div class="top"></div><div class="body">
+        <div class="kicker">Row filters</div>
+        <h3>Tenant isolation</h3>
+        <div class="meta"><span class="tag">X-Tenant-Id</span><span class="tag accent">required</span></div>
+      </div>
+    </div>
+    <div class="card" data-card="7" style="left:781.328125px;top:1009px;width:357.328125px;height:312px">
+      <div class="top"></div><div class="body">
+        <div class="kicker">Relations</div>
+        <h3>Include depth = 1</h3>
+        <div class="meta"><span class="tag">joins</span><span class="tag accent">orders→users</span></div>
+      </div>
+    </div>
+    <div class="card" data-card="8" style="left:1154.65625px;top:1009px;width:357.34375px;height:312px">
+      <div class="top"></div><div class="body">
+        <div class="kicker">Batch ops</div>
+        <h3>Bulk create / upsert</h3>
+        <div class="meta"><span class="tag accent">batch_create</span><span class="tag">bulk_delete</span></div>
+      </div>
+    </div>
+    <div class="card" data-card="9" style="left:408px;top:1402px;width:357.328125px;height:312px">
+      <div class="top"></div><div class="body">
+        <div class="kicker">OpenAPI</div>
+        <h3>Export artifact</h3>
+        <div class="meta"><span class="tag">make openapi</span><span class="tag accent">3.1</span></div>
+      </div>
+    </div>
+    <div class="card" data-card="10" style="left:781.328125px;top:1402px;width:357.328125px;height:312px">
+      <div class="top"></div><div class="body">
+        <div class="kicker">docker-compose</div>
+        <h3>Demo CRM stack</h3>
+        <div class="meta"><span class="tag">Postgres 16</span><span class="tag accent">make up</span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

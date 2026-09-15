@@ -1,0 +1,1513 @@
+openapi: 3.1.0
+info:
+  title: PostgreSQL API Gateway
+  description: Config-driven PostgreSQL API Gateway
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      tags:
+      - system
+      summary: Health
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Health Health Get
+  /ready:
+    get:
+      tags:
+      - system
+      summary: Ready
+      operationId: ready_ready_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/users:
+    get:
+      tags:
+      - users
+      summary: List Items
+      operationId: list_items_api_v1_users_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: sort
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sort
+      - name: include
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Include
+      - name: include_deleted
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Deleted
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response List Items Api V1 Users Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - users
+      summary: Create Item
+      operationId: create_item_api_v1_users_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsersCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Item Api V1 Users Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/batch:
+    post:
+      tags:
+      - users
+      summary: Batch Create
+      operationId: batch_create_api_v1_users_batch_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsersBatch'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  additionalProperties: true
+                  type: object
+                type: array
+                title: Response Batch Create Api V1 Users Batch Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/upsert:
+    post:
+      tags:
+      - users
+      summary: Upsert Items
+      operationId: upsert_items_api_v1_users_upsert_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsersUpsert'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  additionalProperties: true
+                  type: object
+                type: array
+                title: Response Upsert Items Api V1 Users Upsert Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/bulk-delete:
+    post:
+      tags:
+      - users
+      summary: Bulk Delete
+      operationId: bulk_delete_api_v1_users_bulk_delete_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsersBulkDelete'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Bulk Delete Api V1 Users Bulk Delete Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/aggregate:
+    post:
+      tags:
+      - users
+      summary: Aggregate
+      operationId: aggregate_api_v1_users_aggregate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsersAggregateRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Aggregate Api V1 Users Aggregate Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/{item_id}:
+    get:
+      tags:
+      - users
+      summary: Get Item
+      operationId: get_item_api_v1_users__item_id__get
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      - name: include
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Include
+      - name: include_deleted
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Deleted
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Item Api V1 Users  Item Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - users
+      summary: Put Item
+      operationId: put_item_api_v1_users__item_id__put
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsersUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Put Item Api V1 Users  Item Id  Put
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - users
+      summary: Patch Item
+      operationId: patch_item_api_v1_users__item_id__patch
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsersPatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Patch Item Api V1 Users  Item Id  Patch
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - users
+      summary: Delete Item
+      operationId: delete_item_api_v1_users__item_id__delete
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Delete Item Api V1 Users  Item Id  Delete
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orders:
+    get:
+      tags:
+      - orders
+      summary: List Items
+      operationId: list_items_api_v1_orders_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: sort
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sort
+      - name: include
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Include
+      - name: include_deleted
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Deleted
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response List Items Api V1 Orders Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - orders
+      summary: Create Item
+      operationId: create_item_api_v1_orders_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Item Api V1 Orders Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orders/batch:
+    post:
+      tags:
+      - orders
+      summary: Batch Create
+      operationId: batch_create_api_v1_orders_batch_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersBatch'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  additionalProperties: true
+                  type: object
+                type: array
+                title: Response Batch Create Api V1 Orders Batch Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orders/upsert:
+    post:
+      tags:
+      - orders
+      summary: Upsert Items
+      operationId: upsert_items_api_v1_orders_upsert_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersUpsert'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  additionalProperties: true
+                  type: object
+                type: array
+                title: Response Upsert Items Api V1 Orders Upsert Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orders/bulk-delete:
+    post:
+      tags:
+      - orders
+      summary: Bulk Delete
+      operationId: bulk_delete_api_v1_orders_bulk_delete_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersBulkDelete'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Bulk Delete Api V1 Orders Bulk Delete Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orders/aggregate:
+    post:
+      tags:
+      - orders
+      summary: Aggregate
+      operationId: aggregate_api_v1_orders_aggregate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersAggregateRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Aggregate Api V1 Orders Aggregate Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orders/{item_id}:
+    get:
+      tags:
+      - orders
+      summary: Get Item
+      operationId: get_item_api_v1_orders__item_id__get
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      - name: include
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Include
+      - name: include_deleted
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Deleted
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Item Api V1 Orders  Item Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - orders
+      summary: Put Item
+      operationId: put_item_api_v1_orders__item_id__put
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Put Item Api V1 Orders  Item Id  Put
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - orders
+      summary: Patch Item
+      operationId: patch_item_api_v1_orders__item_id__patch
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersPatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Patch Item Api V1 Orders  Item Id  Patch
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - orders
+      summary: Delete Item
+      operationId: delete_item_api_v1_orders__item_id__delete
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Delete Item Api V1 Orders  Item Id  Delete
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/order_items:
+    get:
+      tags:
+      - order_items
+      summary: List Items
+      operationId: list_items_api_v1_order_items_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      - name: sort
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sort
+      - name: include
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Include
+      - name: include_deleted
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Deleted
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response List Items Api V1 Order Items Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - order_items
+      summary: Create Item
+      operationId: create_item_api_v1_order_items_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderItemsCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Item Api V1 Order Items Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/order_items/batch:
+    post:
+      tags:
+      - order_items
+      summary: Batch Create
+      operationId: batch_create_api_v1_order_items_batch_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderItemsBatch'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  additionalProperties: true
+                  type: object
+                type: array
+                title: Response Batch Create Api V1 Order Items Batch Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/order_items/upsert:
+    post:
+      tags:
+      - order_items
+      summary: Upsert Items
+      operationId: upsert_items_api_v1_order_items_upsert_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderItemsUpsert'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  additionalProperties: true
+                  type: object
+                type: array
+                title: Response Upsert Items Api V1 Order Items Upsert Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/order_items/bulk-delete:
+    post:
+      tags:
+      - order_items
+      summary: Bulk Delete
+      operationId: bulk_delete_api_v1_order_items_bulk_delete_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderItemsBulkDelete'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Bulk Delete Api V1 Order Items Bulk Delete Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/order_items/aggregate:
+    post:
+      tags:
+      - order_items
+      summary: Aggregate
+      operationId: aggregate_api_v1_order_items_aggregate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderItemsAggregateRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Aggregate Api V1 Order Items Aggregate Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/order_items/{item_id}:
+    get:
+      tags:
+      - order_items
+      summary: Get Item
+      operationId: get_item_api_v1_order_items__item_id__get
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      - name: include
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Include
+      - name: include_deleted
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Deleted
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Item Api V1 Order Items  Item Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - order_items
+      summary: Put Item
+      operationId: put_item_api_v1_order_items__item_id__put
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderItemsUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Put Item Api V1 Order Items  Item Id  Put
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - order_items
+      summary: Patch Item
+      operationId: patch_item_api_v1_order_items__item_id__patch
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderItemsPatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Patch Item Api V1 Order Items  Item Id  Patch
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - order_items
+      summary: Delete Item
+      operationId: delete_item_api_v1_order_items__item_id__delete
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Delete Item Api V1 Order Items  Item Id  Delete
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    OrderItemsAggregateRequest:
+      properties:
+        function:
+          type: string
+          title: Function
+        field:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Field
+        group_by:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Group By
+        filters:
+          anyOf:
+          - additionalProperties:
+              additionalProperties: true
+              type: object
+            type: object
+          - type: 'null'
+          title: Filters
+        include_deleted:
+          type: boolean
+          title: Include Deleted
+          default: false
+      type: object
+      required:
+      - function
+      title: OrderItemsAggregateRequest
+    OrderItemsBatch:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/OrderItemsCreate'
+          type: array
+          minItems: 1
+          title: Items
+      type: object
+      required:
+      - items
+      title: OrderItemsBatch
+    OrderItemsBulkDelete:
+      properties:
+        ids:
+          anyOf:
+          - items: {}
+            type: array
+          - type: 'null'
+          title: Ids
+        filters:
+          anyOf:
+          - additionalProperties:
+              additionalProperties: true
+              type: object
+            type: object
+          - type: 'null'
+          title: Filters
+      type: object
+      title: OrderItemsBulkDelete
+    OrderItemsCreate:
+      properties:
+        order_id:
+          type: string
+          format: uuid
+          title: Order Id
+        sku:
+          type: string
+          title: Sku
+        quantity:
+          type: integer
+          title: Quantity
+        unit_price:
+          anyOf:
+          - type: number
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Unit Price
+      type: object
+      required:
+      - order_id
+      - sku
+      - quantity
+      - unit_price
+      title: OrderItemsCreate
+    OrderItemsPatch:
+      properties:
+        order_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Order Id
+        sku:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sku
+        quantity:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Quantity
+        unit_price:
+          anyOf:
+          - type: number
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Unit Price
+      type: object
+      title: OrderItemsPatch
+    OrderItemsUpdate:
+      properties:
+        order_id:
+          type: string
+          format: uuid
+          title: Order Id
+        sku:
+          type: string
+          title: Sku
+        quantity:
+          type: integer
+          title: Quantity
+        unit_price:
+          anyOf:
+          - type: number
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Unit Price
+      type: object
+      required:
+      - order_id
+      - sku
+      - quantity
+      - unit_price
+      title: OrderItemsUpdate
+    OrderItemsUpsert:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/OrderItemsCreate'
+          type: array
+          minItems: 1
+          title: Items
+      type: object
+      required:
+      - items
+      title: OrderItemsUpsert
+    OrdersAggregateRequest:
+      properties:
+        function:
+          type: string
+          title: Function
+        field:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Field
+        group_by:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Group By
+        filters:
+          anyOf:
+          - additionalProperties:
+              additionalProperties: true
+              type: object
+            type: object
+          - type: 'null'
+          title: Filters
+        include_deleted:
+          type: boolean
+          title: Include Deleted
+          default: false
+      type: object
+      required:
+      - function
+      title: OrdersAggregateRequest
+    OrdersBatch:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/OrdersCreate'
+          type: array
+          minItems: 1
+          title: Items
+      type: object
+      required:
+      - items
+      title: OrdersBatch
+    OrdersBulkDelete:
+      properties:
+        ids:
+          anyOf:
+          - items: {}
+            type: array
+          - type: 'null'
+          title: Ids
+        filters:
+          anyOf:
+          - additionalProperties:
+              additionalProperties: true
+              type: object
+            type: object
+          - type: 'null'
+          title: Filters
+      type: object
+      title: OrdersBulkDelete
+    OrdersCreate:
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          title: User Id
+        order_number:
+          type: string
+          title: Order Number
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        total_amount:
+          anyOf:
+          - type: number
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Total Amount
+      type: object
+      required:
+      - user_id
+      - order_number
+      title: OrdersCreate
+    OrdersPatch:
+      properties:
+        user_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: User Id
+        order_number:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Order Number
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        total_amount:
+          anyOf:
+          - type: number
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Total Amount
+      type: object
+      title: OrdersPatch
+    OrdersUpdate:
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          title: User Id
+        order_number:
+          type: string
+          title: Order Number
+        status:
+          type: string
+          title: Status
+        total_amount:
+          anyOf:
+          - type: number
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Total Amount
+      type: object
+      required:
+      - user_id
+      - order_number
+      - status
+      - total_amount
+      title: OrdersUpdate
+    OrdersUpsert:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/OrdersCreate'
+          type: array
+          minItems: 1
+          title: Items
+      type: object
+      required:
+      - items
+      title: OrdersUpsert
+    UsersAggregateRequest:
+      properties:
+        function:
+          type: string
+          title: Function
+        field:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Field
+        group_by:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Group By
+        filters:
+          anyOf:
+          - additionalProperties:
+              additionalProperties: true
+              type: object
+            type: object
+          - type: 'null'
+          title: Filters
+        include_deleted:
+          type: boolean
+          title: Include Deleted
+          default: false
+      type: object
+      required:
+      - function
+      title: UsersAggregateRequest
+    UsersBatch:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/UsersCreate'
+          type: array
+          minItems: 1
+          title: Items
+      type: object
+      required:
+      - items
+      title: UsersBatch
+    UsersBulkDelete:
+      properties:
+        ids:
+          anyOf:
+          - items: {}
+            type: array
+          - type: 'null'
+          title: Ids
+        filters:
+          anyOf:
+          - additionalProperties:
+              additionalProperties: true
+              type: object
+            type: object
+          - type: 'null'
+          title: Filters
+      type: object
+      title: UsersBulkDelete
+    UsersCreate:
+      properties:
+        email:
+          type: string
+          title: Email
+        full_name:
+          type: string
+          title: Full Name
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      type: object
+      required:
+      - email
+      - full_name
+      title: UsersCreate
+    UsersPatch:
+      properties:
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        full_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Full Name
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      type: object
+      title: UsersPatch
+    UsersUpdate:
+      properties:
+        email:
+          type: string
+          title: Email
+        full_name:
+          type: string
+          title: Full Name
+        status:
+          type: string
+          title: Status
+      type: object
+      required:
+      - email
+      - full_name
+      - status
+      title: UsersUpdate
+    UsersUpsert:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/UsersCreate'
+          type: array
+          minItems: 1
+          title: Items
+      type: object
+      required:
+      - items
+      title: UsersUpsert
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError

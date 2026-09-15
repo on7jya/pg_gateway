@@ -1,0 +1,291 @@
+gateway:
+  base_path: /api/v1
+  pagination:
+    default_limit: 20
+    max_limit: 100
+  query_timeout_ms: 5000
+
+authz:
+  mode: header_stub
+  tenant_header: X-Tenant-Id
+  roles_header: X-Roles
+
+resources:
+  users:
+    table: users
+    pk: id
+    soft_delete:
+      enabled: true
+      field: deleted_at
+    operations:
+      list: true
+      get: true
+      create: true
+      update: true
+      patch: true
+      delete: true
+      batch_create: true
+      bulk_delete: true
+      upsert: true
+      aggregate: true
+    row_filters:
+      - column: tenant_id
+        from_context: tenant_id
+        required: true
+    fields:
+      id:
+        type: uuid
+        read: true
+        write: false
+        primary_key: true
+        auto: true
+        nullable: false
+      tenant_id:
+        type: uuid
+        read: true
+        write: false
+        required: true
+        nullable: false
+      email:
+        type: string
+        read: true
+        write: true
+        required: true
+        nullable: false
+      full_name:
+        type: string
+        read: true
+        write: true
+        required: true
+        nullable: false
+      status:
+        type: string
+        read: true
+        write: true
+        required: false
+        nullable: false
+      created_at:
+        type: datetime
+        read: true
+        write: false
+        auto: true
+        nullable: false
+      deleted_at:
+        type: datetime
+        read: true
+        write: false
+        nullable: true
+    roles:
+      admin:
+        operations: [list, get, create, update, patch, delete, batch_create, bulk_delete, upsert, aggregate]
+        fields:
+          read: [id, tenant_id, email, full_name, status, created_at, deleted_at]
+          write: [email, full_name, status]
+      reader:
+        operations: [list, get, aggregate]
+        fields:
+          read: [id, tenant_id, email, full_name, status, created_at]
+          write: []
+    relations:
+      orders:
+        resource: orders
+        type: one_to_many
+        local: id
+        foreign: user_id
+    filterable: [email, full_name, status, created_at]
+    sortable: [email, full_name, status, created_at]
+    upsert_keys: [tenant_id, email]
+    aggregate:
+      allowed_functions: [count]
+      group_by: [status]
+      sum_fields: []
+
+  orders:
+    table: orders
+    pk: id
+    soft_delete:
+      enabled: true
+      field: deleted_at
+    operations:
+      list: true
+      get: true
+      create: true
+      update: true
+      patch: true
+      delete: true
+      batch_create: true
+      bulk_delete: true
+      upsert: true
+      aggregate: true
+    row_filters:
+      - column: tenant_id
+        from_context: tenant_id
+        required: true
+    fields:
+      id:
+        type: uuid
+        read: true
+        write: false
+        primary_key: true
+        auto: true
+        nullable: false
+      tenant_id:
+        type: uuid
+        read: true
+        write: false
+        required: true
+        nullable: false
+      user_id:
+        type: uuid
+        read: true
+        write: true
+        required: true
+        nullable: false
+      order_number:
+        type: string
+        read: true
+        write: true
+        required: true
+        nullable: false
+      status:
+        type: string
+        read: true
+        write: true
+        required: false
+        nullable: false
+      total_amount:
+        type: decimal
+        read: true
+        write: true
+        required: false
+        nullable: false
+      created_at:
+        type: datetime
+        read: true
+        write: false
+        auto: true
+        nullable: false
+      deleted_at:
+        type: datetime
+        read: true
+        write: false
+        nullable: true
+    roles:
+      admin:
+        operations: [list, get, create, update, patch, delete, batch_create, bulk_delete, upsert, aggregate]
+        fields:
+          read: [id, tenant_id, user_id, order_number, status, total_amount, created_at, deleted_at]
+          write: [user_id, order_number, status, total_amount]
+      reader:
+        operations: [list, get, aggregate]
+        fields:
+          read: [id, tenant_id, user_id, order_number, status, total_amount, created_at]
+          write: []
+    relations:
+      user:
+        resource: users
+        type: many_to_one
+        local: user_id
+        foreign: id
+      items:
+        resource: order_items
+        type: one_to_many
+        local: id
+        foreign: order_id
+    filterable: [user_id, order_number, status, total_amount, created_at]
+    sortable: [order_number, status, total_amount, created_at]
+    upsert_keys: [tenant_id, order_number]
+    aggregate:
+      allowed_functions: [count, sum]
+      group_by: [status, user_id]
+      sum_fields: [total_amount]
+
+  order_items:
+    table: order_items
+    pk: id
+    soft_delete:
+      enabled: false
+      field: deleted_at
+    operations:
+      list: true
+      get: true
+      create: true
+      update: true
+      patch: true
+      delete: true
+      batch_create: true
+      bulk_delete: true
+      upsert: true
+      aggregate: true
+    row_filters:
+      - column: tenant_id
+        from_context: tenant_id
+        required: true
+    fields:
+      id:
+        type: uuid
+        read: true
+        write: false
+        primary_key: true
+        auto: true
+        nullable: false
+      tenant_id:
+        type: uuid
+        read: true
+        write: false
+        required: true
+        nullable: false
+      order_id:
+        type: uuid
+        read: true
+        write: true
+        required: true
+        nullable: false
+      sku:
+        type: string
+        read: true
+        write: true
+        required: true
+        nullable: false
+      quantity:
+        type: int
+        read: true
+        write: true
+        required: true
+        nullable: false
+      unit_price:
+        type: decimal
+        read: true
+        write: true
+        required: true
+        nullable: false
+      created_at:
+        type: datetime
+        read: true
+        write: false
+        auto: true
+        nullable: false
+    roles:
+      admin:
+        operations: [list, get, create, update, patch, delete, batch_create, bulk_delete, upsert, aggregate]
+        fields:
+          read: [id, tenant_id, order_id, sku, quantity, unit_price, created_at]
+          write: [order_id, sku, quantity, unit_price]
+      reader:
+        operations: [list, get, aggregate]
+        fields:
+          read: [id, tenant_id, order_id, sku, quantity, unit_price, created_at]
+          write: []
+    relations:
+      order:
+        resource: orders
+        type: many_to_one
+        local: order_id
+        foreign: id
+    filterable: [order_id, sku, quantity]
+    sortable: [sku, quantity, unit_price, created_at]
+    upsert_keys: [tenant_id, order_id, sku]
+    aggregate:
+      allowed_functions: [count, sum]
+      group_by: [sku, order_id]
+      sum_fields: [quantity, unit_price]
