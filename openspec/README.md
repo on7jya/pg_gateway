@@ -1,3 +1,3 @@
-# OpenSpec project marker for pg_gateway
-# Specs: openspec/specs/*/spec.md
-# Config: openspec/config.yaml
+# Маркер проекта OpenSpec для pg_gateway
+# Спецификации: openspec/specs/*/spec.md
+# Конфиг: openspec/config.yaml

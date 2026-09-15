@@ -2,8 +2,8 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: gateway
-      POSTGRES_PASSWORD: gateway
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: gateway
     ports:
       - "5432:5432"
@@ -11,7 +11,7 @@ services:
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gateway -d gateway"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gateway"]
       interval: 3s
       timeout: 5s
       retries: 20
@@ -23,6 +23,7 @@ services:
     environment:
       DATABASE_URL: postgresql://gateway:gateway@postgres:5432/gateway
       CONFIG_PATH: /app/config/config.yaml
+      GATEWAY_TRUST_TOKEN: demo-trust-token
       LOG_LEVEL: info
     depends_on:
       postgres:

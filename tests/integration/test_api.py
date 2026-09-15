@@ -12,9 +12,22 @@ pytestmark = pytest.mark.integration
 
 @pytest.mark.asyncio
 async def test_ready(client: AsyncClient):
-    r = await client.get("/ready")
+    r = await client.get(
+        "/ready",
+        headers={"X-Gateway-Token": "demo-trust-token"},
+    )
     assert r.status_code == 200
     assert r.json()["status"] == "ready"
+
+
+@pytest.mark.asyncio
+async def test_missing_trust_token_401(client: AsyncClient):
+    r = await client.get(
+        "/api/v1/users",
+        headers={"X-Tenant-Id": TENANT_A, "X-Roles": "admin"},
+    )
+    assert r.status_code == 401
+    assert r.json()["code"] == "UNAUTHORIZED"
 
 
 @pytest.mark.asyncio
@@ -32,11 +45,28 @@ async def test_list_users(client: AsyncClient, admin_headers: dict):
 
 @pytest.mark.asyncio
 async def test_missing_tenant_403(client: AsyncClient):
-    r = await client.get("/api/v1/users", headers={"X-Roles": "admin"})
+    r = await client.get(
+        "/api/v1/users",
+        headers={"X-Gateway-Token": "demo-trust-token", "X-Roles": "admin"},
+    )
     assert r.status_code == 403
     body = r.json()
     assert "detail" in body and "code" in body
     assert body["code"] == "MISSING_TENANT"
+
+
+@pytest.mark.asyncio
+async def test_unknown_roles_403(client: AsyncClient):
+    r = await client.get(
+        "/api/v1/users",
+        headers={
+            "X-Gateway-Token": "demo-trust-token",
+            "X-Tenant-Id": TENANT_A,
+            "X-Roles": "not-a-role",
+        },
+    )
+    assert r.status_code == 403
+    assert r.json()["code"] == "AUTHZ_DENIED"
 
 
 @pytest.mark.asyncio
@@ -232,3 +262,29 @@ async def test_orders_list_and_items_include(client: AsyncClient, admin_headers:
     data = r.json()["data"]
     assert len(data) >= 1
     assert "items" in data[0]
+
+
+@pytest.mark.asyncio
+async def test_rls_blocks_cross_tenant_even_with_app_filters(app):
+    """RLS + set_config: gateway role only sees rows for app.tenant_id."""
+    import asyncpg
+
+    from tests.conftest import TENANT_A, TENANT_B
+
+    database_url = app.state.settings.database_url
+    conn = await asyncpg.connect(database_url)
+    try:
+        await conn.execute("SELECT set_config('app.tenant_id', $1, false)", TENANT_A)
+        emails_a = {r["email"] for r in await conn.fetch("SELECT email FROM users")}
+        assert "alice@acme.test" in emails_a
+        assert "carol@other.test" not in emails_a
+
+        await conn.execute("SELECT set_config('app.tenant_id', $1, false)", TENANT_B)
+        emails_b = {r["email"] for r in await conn.fetch("SELECT email FROM users")}
+        assert "carol@other.test" in emails_b
+        assert "alice@acme.test" not in emails_b
+
+        await conn.execute("SELECT set_config('app.tenant_id', '', false)")
+        assert await conn.fetchval("SELECT count(*) FROM users") == 0
+    finally:
+        await conn.close()

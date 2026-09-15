@@ -1,26 +1,29 @@
-# OpenSpec configuration for pg_gateway
+# Конфигурация OpenSpec для pg_gateway
 schema: spec-driven
 
 context: |
-  Config-driven PostgreSQL API Gateway.
-  Routes and schemas are generated from YAML config (config/config.yaml).
-  No SQLAlchemy ORM — asyncpg with parameterized SQL; identifiers from config whitelist only.
-  Auth v1: trusted headers X-Tenant-Id and X-Roles. AuthzPort stub for future external authz.
-  OpenAPI is an export artifact, not the source of truth.
+  Конфигурируемый API-шлюз для PostgreSQL.
+  Маршруты и схемы генерируются из YAML-конфига (config/config.yaml).
+  Без ORM SQLAlchemy — asyncpg с параметризованным SQL; идентификаторы только из whitelist конфига.
+  Auth v1: обязательный X-Gateway-Token (GATEWAY_TRUST_TOKEN) + заголовки X-Tenant-Id и X-Roles.
+  AuthzPort вызывается на каждой операции; header_stub безопасен по умолчанию. Postgres RLS по tenant_id.
+  OpenAPI — артефакт экспорта, а не источник истины.
 
 rules:
   gateway-routing:
-    - Generate FastAPI routes only from YAML resource definitions
-    - Follow approved path contract under /api/v1/{resource}
-    - Keep OpenAPI as an export of the running FastAPI app (OpenAPI 3.1)
+    - Генерировать маршруты FastAPI только из определений ресурсов в YAML
+    - Соблюдать утверждённый контракт путей под /api/v1/{resource}
+    - Держать OpenAPI как экспорт работающего приложения FastAPI (OpenAPI 3.1)
   access-control:
-    - Enforce entity CRUD flags, field read/write, and role ACL from config
-    - Apply row_filters from request context (tenant_id required when configured)
-    - Missing required tenant context must return 403
+    - Требовать GATEWAY_TRUST_TOKEN / X-Gateway-Token в режиме header_stub
+    - Вызывать AuthzPort.allow на каждой операции ресурса до ACL и данных
+    - Применять флаги CRUD сущностей, права чтения/записи полей и ACL ролей из конфига
+    - Применять row_filters из контекста запроса (tenant_id обязателен, если настроен)
+    - Устанавливать app.tenant_id для Postgres RLS; при отсутствии обязательного tenant-контекста возвращать 403
   query-engine:
-    - Identifiers must come from config whitelist; never concatenate user input as SQL identifiers
-    - Support declared filters, sort, pagination, soft-delete, joins (depth ≤1), aggregates
-    - Use transactions for CUD / batch / upsert / bulk-delete
+    - Идентификаторы ДОЛЖНЫ браться из whitelist конфига; никогда не склеивать пользовательский ввод как SQL-идентификаторы
+    - Поддерживать объявленные фильтры, сортировку, пагинацию, soft-delete, joins (глубина ≤1), агрегаты
+    - Использовать транзакции для CUD / batch / upsert / bulk-delete
   errors:
-    - Error body shape is always {detail, code}
-    - Map not found → 404, unique violation → 409, validation → 400, timeout → 504
+    - Форма тела ошибки всегда {detail, code}
+    - Отображать: not found → 404, unique violation → 409, validation → 400, timeout → 504

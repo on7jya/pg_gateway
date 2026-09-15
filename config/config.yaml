@@ -9,6 +9,7 @@ authz:
   mode: header_stub
   tenant_header: X-Tenant-Id
   roles_header: X-Roles
+  trust_header: X-Gateway-Token
 
 resources:
   users:

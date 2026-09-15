@@ -1,70 +1,70 @@
-# Query Engine
+# Движок запросов
 
 ## Purpose
 
-Safe SQL generation, filtering, pagination, soft-delete, joins, aggregates, and transactional writes.
+Безопасная генерация SQL, фильтрация, пагинация, soft-delete, joins, агрегаты и транзакционные записи.
 
 ## Requirements
 
-### Requirement: Whitelisted identifiers only
+### Requirement: Только идентификаторы из whitelist
 
-Table and column identifiers MUST come from the config whitelist. User input MUST only appear as parameterized values.
+Идентификаторы таблиц и колонок MUST браться из whitelist конфига. Пользовательский ввод MUST появляться только как параметризованные значения.
 
-#### Scenario: Reject unknown filter field
+#### Scenario: Отклонение неизвестного поля фильтра
 
-- **WHEN** a filter references a non-filterable field
-- **THEN** the gateway returns 400
+- **WHEN** фильтр ссылается на поле, недоступное для фильтрации
+- **THEN** шлюз возвращает 400
 
-### Requirement: Pagination
+### Requirement: Пагинация
 
-List endpoints SHALL support `limit` and `offset`. Default limit is 20; maximum is 100 (configurable).
+Эндпоинты списка SHALL поддерживать `limit` и `offset`. Лимит по умолчанию — 20; максимум — 100 (настраивается).
 
-#### Scenario: Clamp max limit
+#### Scenario: Ограничение максимального limit
 
-- **WHEN** `limit=1000` is requested
-- **THEN** the effective limit is capped at `max_limit`
+- **WHEN** запрошен `limit=1000`
+- **THEN** эффективный лимит ограничен значением `max_limit`
 
-### Requirement: Filters and sort
+### Requirement: Фильтры и сортировка
 
-The gateway SHALL support filter ops: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `like`, `ilike`, `is_null`. Sort SHALL use the `sort` query (`field` or `-field`).
+Шлюз SHALL поддерживать операции фильтрации: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `like`, `ilike`, `is_null`. Сортировка SHALL использовать query-параметр `sort` (`field` или `-field`).
 
-#### Scenario: Equality filter
+#### Scenario: Фильтр равенства
 
-- **WHEN** `filter[status][eq]=active` is provided
-- **THEN** only matching rows are returned
+- **WHEN** передан `filter[status][eq]=active`
+- **THEN** возвращаются только совпадающие строки
 
 ### Requirement: Soft-delete
 
-When enabled, delete SHALL set `deleted_at` (configurable). Lists/gets SHALL exclude soft-deleted rows unless `include_deleted=true`.
+При включении delete SHALL устанавливать `deleted_at` (настраивается). Lists/gets SHALL исключать soft-deleted строки, если не указано `include_deleted=true`.
 
-#### Scenario: Soft delete hides row
+#### Scenario: Soft-delete скрывает строку
 
-- **WHEN** a user is soft-deleted
-- **THEN** subsequent list without `include_deleted` omits that user
+- **WHEN** пользователь soft-deleted
+- **THEN** последующий list без `include_deleted` не включает этого пользователя
 
-### Requirement: Includes (joins) depth ≤ 1
+### Requirement: Includes (joins) глубиной ≤ 1
 
-The gateway SHALL allow `include` to load declared relations only, and MUST limit include depth to at most 1.
+Шлюз SHALL разрешать `include` только для объявленных связей и MUST ограничивать глубину include не более чем 1.
 
-#### Scenario: Include orders for user
+#### Scenario: Include orders для user
 
 - **WHEN** `GET /api/v1/users/{id}?include=orders`
-- **THEN** the response embeds related `orders` for that user
+- **THEN** ответ встраивает связанные `orders` для этого пользователя
 
-### Requirement: Aggregations
+### Requirement: Агрегации
 
-`POST .../aggregate` SHALL allow only configured functions, group_by fields, and sum fields.
+`POST .../aggregate` SHALL допускать только настроенные функции, поля group_by и поля sum.
 
-#### Scenario: Sum totals by status
+#### Scenario: Сумма totals по status
 
-- **WHEN** aggregate `sum` on `total_amount` grouped by `status` is requested for orders
-- **THEN** grouped totals are returned
+- **WHEN** для orders запрошена агрегация `sum` по `total_amount` с группировкой по `status`
+- **THEN** возвращаются сгруппированные итоги
 
-### Requirement: Transactions and timeouts
+### Requirement: Транзакции и таймауты
 
-CUD, batch, upsert, and bulk-delete SHALL run in transactions. Query timeouts SHALL be enforced via configured `query_timeout_ms`.
+CUD, batch, upsert и bulk-delete SHALL выполняться в транзакциях. Таймауты запросов SHALL обеспечиваться через настроенный `query_timeout_ms`.
 
-#### Scenario: Unique conflict
+#### Scenario: Конфликт уникальности
 
-- **WHEN** create violates a unique constraint
-- **THEN** the response is 409 with code `UNIQUE_VIOLATION`
+- **WHEN** create нарушает unique constraint
+- **THEN** ответ — 409 с кодом `UNIQUE_VIOLATION`

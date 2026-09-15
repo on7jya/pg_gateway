@@ -49,6 +49,7 @@ class AuthzConfig(BaseModel):
     mode: str = "header_stub"
     tenant_header: str = "X-Tenant-Id"
     roles_header: str = "X-Roles"
+    trust_header: str = "X-Gateway-Token"
 
 
 class SoftDeleteConfig(BaseModel):
@@ -173,6 +174,7 @@ class Settings(BaseModel):
     host: str = "0.0.0.0"
     port: int = 8000
     log_level: str = "info"
+    gateway_trust_token: str = ""
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -187,4 +189,5 @@ class Settings(BaseModel):
             host=os.getenv("HOST", "0.0.0.0"),
             port=int(os.getenv("PORT", "8000")),
             log_level=os.getenv("LOG_LEVEL", "info"),
+            gateway_trust_token=os.getenv("GATEWAY_TRUST_TOKEN", ""),
         )

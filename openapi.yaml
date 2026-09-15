@@ -1511,3 +1511,22 @@ components:
       - msg
       - type
       title: ValidationError
+  securitySchemes:
+    GatewayToken:
+      type: apiKey
+      in: header
+      name: X-Gateway-Token
+      description: Shared secret (GATEWAY_TRUST_TOKEN). Required for all API routes.
+    TenantId:
+      type: apiKey
+      in: header
+      name: X-Tenant-Id
+    Roles:
+      type: apiKey
+      in: header
+      name: X-Roles
+      description: Comma-separated roles from the resource ACL registry.
+security:
+- GatewayToken: []
+  TenantId: []
+  Roles: []

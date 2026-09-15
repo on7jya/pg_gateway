@@ -6,6 +6,7 @@ from typing import AsyncIterator
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
 from pg_gateway.authz import HeaderStubAuthz
@@ -15,6 +16,23 @@ from pg_gateway.errors import GatewayError, gateway_exception_handler, validatio
 from pg_gateway.middleware import RequestContextMiddleware
 from pg_gateway.routers import build_api_router
 from pg_gateway.service import ResourceService
+
+
+def _require_trust_token(config: AppConfig, settings: Settings) -> str:
+    token = (settings.gateway_trust_token or "").strip()
+    if config.authz.mode == "header_stub" and not token:
+        raise RuntimeError(
+            "GATEWAY_TRUST_TOKEN is required when authz.mode=header_stub "
+            "(set a non-empty shared secret; clients must send it as X-Gateway-Token)"
+        )
+    return token
+
+
+def _known_roles(config: AppConfig) -> frozenset[str]:
+    roles: set[str] = set()
+    for resource in config.resources.values():
+        roles.update(resource.roles.keys())
+    return frozenset(roles)
 
 
 def create_app(
@@ -34,9 +52,10 @@ def create_app(
                     config_path = alt
         config = load_config(config_path)
 
+    trust_token = _require_trust_token(config, settings)
     db = Database(settings.database_url, statement_timeout_ms=config.gateway.query_timeout_ms)
-    service = ResourceService(config, db)
-    authz = HeaderStubAuthz()
+    authz = HeaderStubAuthz(config)
+    service = ResourceService(config, db, authz)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -64,7 +83,12 @@ def create_app(
     app.add_exception_handler(GatewayError, gateway_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
-    app.add_middleware(RequestContextMiddleware, authz=config.authz)
+    app.add_middleware(
+        RequestContextMiddleware,
+        authz=config.authz,
+        trust_token=trust_token,
+        known_roles=_known_roles(config),
+    )
 
     @app.get("/health", tags=["system"])
     async def health() -> dict[str, str]:
@@ -89,6 +113,41 @@ def create_app(
 
     api = build_api_router(config, service)
     app.include_router(api, prefix=config.gateway.base_path.rstrip("/"))
+
+    def custom_openapi() -> dict:
+        if app.openapi_schema:
+            return app.openapi_schema
+        schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            description=app.description,
+            routes=app.routes,
+        )
+        schema["openapi"] = "3.1.0"
+        components = schema.setdefault("components", {})
+        schemes = components.setdefault("securitySchemes", {})
+        schemes["GatewayToken"] = {
+            "type": "apiKey",
+            "in": "header",
+            "name": config.authz.trust_header,
+            "description": "Shared secret (GATEWAY_TRUST_TOKEN). Required for all API routes.",
+        }
+        schemes["TenantId"] = {
+            "type": "apiKey",
+            "in": "header",
+            "name": config.authz.tenant_header,
+        }
+        schemes["Roles"] = {
+            "type": "apiKey",
+            "in": "header",
+            "name": config.authz.roles_header,
+            "description": "Comma-separated roles from the resource ACL registry.",
+        }
+        schema["security"] = [{"GatewayToken": [], "TenantId": [], "Roles": []}]
+        app.openapi_schema = schema
+        return app.openapi_schema
+
+    app.openapi = custom_openapi  # type: ignore[method-assign]
 
     return app
 

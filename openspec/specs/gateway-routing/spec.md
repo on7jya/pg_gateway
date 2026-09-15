@@ -1,28 +1,28 @@
-# Gateway Routing
+# Маршрутизация шлюза
 
 ## Purpose
 
-Define how HTTP routes are generated from YAML configuration and exposed under the gateway base path.
+Определить, как HTTP-маршруты генерируются из YAML-конфигурации и публикуются под базовым путём шлюза.
 
 ## Requirements
 
-### Requirement: Config is the route source of truth
+### Requirement: Конфиг — источник истины для маршрутов
 
-The gateway SHALL generate FastAPI routes exclusively from the `resources` section of the YAML config. Hardcoded table/column ORM models MUST NOT be used as the schema source.
+Шлюз SHALL генерировать маршруты FastAPI исключительно из секции `resources` YAML-конфига. Жёстко заданные ORM-модели таблиц/колонок MUST NOT использоваться как источник схемы.
 
-#### Scenario: Resource appears in config
+#### Scenario: Ресурс объявлен в конфиге
 
-- **WHEN** a resource named `users` is declared with `operations.list: true`
-- **THEN** the gateway exposes `GET /api/v1/users`
+- **WHEN** объявлен ресурс с именем `users` и `operations.list: true`
+- **THEN** шлюз предоставляет `GET /api/v1/users`
 
-#### Scenario: Operation disabled
+#### Scenario: Операция отключена
 
-- **WHEN** `operations.create` is `false` for a resource
-- **THEN** `POST /api/v1/{resource}` is not registered
+- **WHEN** для ресурса `operations.create` равно `false`
+- **THEN** `POST /api/v1/{resource}` не регистрируется
 
-### Requirement: Approved path contract
+### Requirement: Утверждённый контракт путей
 
-The gateway SHALL expose these paths for each enabled operation:
+Шлюз SHALL предоставлять следующие пути для каждой включённой операции:
 
 - `GET/POST /api/v1/{resource}`
 - `GET/PUT/PATCH/DELETE /api/v1/{resource}/{id}`
@@ -32,16 +32,16 @@ The gateway SHALL expose these paths for each enabled operation:
 - `POST /api/v1/{resource}/aggregate`
 - `GET /health`, `GET /ready`
 
-#### Scenario: Batch path is not captured as id
+#### Scenario: Путь batch не перехватывается как id
 
-- **WHEN** a client calls `POST /api/v1/users/batch`
-- **THEN** the batch handler runs (not get-by-id)
+- **WHEN** клиент вызывает `POST /api/v1/users/batch`
+- **THEN** выполняется обработчик batch (а не get-by-id)
 
-### Requirement: OpenAPI is an artifact
+### Requirement: OpenAPI — артефакт
 
-OpenAPI 3.1 SHALL be exportable from the FastAPI app and MUST NOT be the route source of truth.
+OpenAPI 3.1 SHALL быть экспортируемым из приложения FastAPI и MUST NOT быть источником истины для маршрутов.
 
-#### Scenario: Export
+#### Scenario: Экспорт
 
-- **WHEN** `make export-openapi` is run
-- **THEN** `openapi.yaml` is written reflecting generated routes and schemas
+- **WHEN** выполняется `make export-openapi`
+- **THEN** записывается `openapi.yaml`, отражающий сгенерированные маршруты и схемы

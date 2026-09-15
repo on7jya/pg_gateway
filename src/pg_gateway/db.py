@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
 import asyncpg
+
+from pg_gateway.context import get_request_context
 
 
 class Database:
@@ -31,22 +36,33 @@ class Database:
             raise RuntimeError("database pool not initialized")
         return self.pool
 
-    async def fetch(self, sql: str, *args: object) -> list[asyncpg.Record]:
+    async def _apply_rls_tenant(self, conn: asyncpg.Connection) -> None:
+        """Bind Postgres session GUC for RLS policies (transaction-local)."""
+        ctx = get_request_context()
+        tenant = ctx.tenant_id or ""
+        await conn.execute("SELECT set_config('app.tenant_id', $1, true)", tenant)
+
+    @asynccontextmanager
+    async def acquire(self) -> AsyncIterator[asyncpg.Connection]:
+        """Connection + transaction with app.tenant_id set for RLS."""
         pool = self.require_pool()
         async with pool.acquire() as conn:
+            async with conn.transaction():
+                await self._apply_rls_tenant(conn)
+                yield conn
+
+    async def fetch(self, sql: str, *args: object) -> list[asyncpg.Record]:
+        async with self.acquire() as conn:
             return await conn.fetch(sql, *args)
 
     async def fetchrow(self, sql: str, *args: object) -> asyncpg.Record | None:
-        pool = self.require_pool()
-        async with pool.acquire() as conn:
+        async with self.acquire() as conn:
             return await conn.fetchrow(sql, *args)
 
     async def fetchval(self, sql: str, *args: object) -> object:
-        pool = self.require_pool()
-        async with pool.acquire() as conn:
+        async with self.acquire() as conn:
             return await conn.fetchval(sql, *args)
 
     async def execute(self, sql: str, *args: object) -> str:
-        pool = self.require_pool()
-        async with pool.acquire() as conn:
+        async with self.acquire() as conn:
             return await conn.execute(sql, *args)

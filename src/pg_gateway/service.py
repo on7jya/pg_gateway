@@ -7,18 +7,26 @@ import asyncpg
 from asyncpg.exceptions import UniqueViolationError
 
 from pg_gateway.acl import ACLChecker
+from pg_gateway.authz import AuthzPort
 from pg_gateway.config.models import AppConfig, ResourceConfig
 from pg_gateway.context import RequestContext, get_request_context
 from pg_gateway.db import Database
-from pg_gateway.errors import ConflictError, NotFoundError, TimeoutAppError, ValidationAppError
+from pg_gateway.errors import (
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+    TimeoutAppError,
+    ValidationAppError,
+)
 from pg_gateway.schemas import serialize_row
 from pg_gateway.sql.builder import QueryBuilder, coerce_pk, parse_sort_param
 
 
 class ResourceService:
-    def __init__(self, app_config: AppConfig, db: Database) -> None:
+    def __init__(self, app_config: AppConfig, db: Database, authz: AuthzPort) -> None:
         self.app_config = app_config
         self.db = db
+        self.authz = authz
 
     def _resource(self, name: str) -> ResourceConfig:
         try:
@@ -32,13 +40,17 @@ class ResourceService:
     def _qb(self, name: str) -> QueryBuilder:
         return QueryBuilder(name, self._resource(name))
 
+    async def _authorize(self, name: str, operation: str) -> RequestContext:
+        ctx = get_request_context()
+        if not await self.authz.allow(ctx, name, operation):
+            raise ForbiddenError("authorization denied", code="AUTHZ_DENIED")
+        return ctx
+
     def _inject_row_context(self, ctx: RequestContext, config: ResourceConfig, payload: dict) -> dict:
         data = dict(payload)
         for rf in config.row_filters:
             ctx_val = getattr(ctx, rf.from_context, None)
             if ctx_val is None and rf.required:
-                from pg_gateway.errors import ForbiddenError
-
                 raise ForbiddenError(
                     f"missing required context '{rf.from_context}'",
                     code="MISSING_TENANT",
@@ -77,7 +89,7 @@ class ResourceService:
         include: list[str] | None = None,
         include_deleted: bool = False,
     ) -> dict[str, Any]:
-        ctx = get_request_context()
+        ctx = await self._authorize(name, "list")
         acl = self._acl(name)
         acl.require_operation(ctx, "list")
         config = self._resource(name)
@@ -118,7 +130,7 @@ class ResourceService:
         include: list[str] | None = None,
         include_deleted: bool = False,
     ) -> dict[str, Any]:
-        ctx = get_request_context()
+        ctx = await self._authorize(name, "get")
         acl = self._acl(name)
         acl.require_operation(ctx, "get")
         qb = self._qb(name)
@@ -139,7 +151,7 @@ class ResourceService:
         return data
 
     async def create(self, name: str, payload: dict[str, Any]) -> dict[str, Any]:
-        ctx = get_request_context()
+        ctx = await self._authorize(name, "create")
         acl = self._acl(name)
         acl.require_operation(ctx, "create")
         config = self._resource(name)
@@ -181,7 +193,7 @@ class ResourceService:
         operation: str,
         partial: bool,
     ) -> dict[str, Any]:
-        ctx = get_request_context()
+        ctx = await self._authorize(name, operation)
         acl = self._acl(name)
         acl.require_operation(ctx, operation)
         config = self._resource(name)
@@ -202,7 +214,7 @@ class ResourceService:
         return self._present(name, ctx, dict(rows[0]))
 
     async def delete(self, name: str, id_value: str) -> dict[str, Any]:
-        ctx = get_request_context()
+        ctx = await self._authorize(name, "delete")
         acl = self._acl(name)
         acl.require_operation(ctx, "delete")
         config = self._resource(name)
@@ -219,7 +231,7 @@ class ResourceService:
         return {"id": str(rows[0][config.pk]), "deleted": True}
 
     async def batch_create(self, name: str, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        ctx = get_request_context()
+        ctx = await self._authorize(name, "batch_create")
         acl = self._acl(name)
         acl.require_operation(ctx, "batch_create")
         config = self._resource(name)
@@ -245,11 +257,9 @@ class ResourceService:
                 columns = list(dict.fromkeys([*columns, *row.keys()]))
         qb = self._qb(name)
         q = qb.build_insert(columns, prepared)
-        pool = self.db.require_pool()
         try:
-            async with pool.acquire() as conn:
-                async with conn.transaction():
-                    rows = await conn.fetch(q.sql, *q.args)
+            async with self.db.acquire() as conn:
+                rows = await conn.fetch(q.sql, *q.args)
         except UniqueViolationError as e:
             raise ConflictError(str(e), code="UNIQUE_VIOLATION") from e
         except asyncpg.exceptions.QueryCanceledError as e:
@@ -257,7 +267,7 @@ class ResourceService:
         return [self._present(name, ctx, dict(r)) for r in rows]
 
     async def upsert(self, name: str, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        ctx = get_request_context()
+        ctx = await self._authorize(name, "upsert")
         acl = self._acl(name)
         acl.require_operation(ctx, "upsert")
         config = self._resource(name)
@@ -276,11 +286,9 @@ class ResourceService:
         update_cols = [c for c in columns if c not in config.upsert_keys and c != config.pk]
         qb = self._qb(name)
         q = qb.build_upsert(columns, prepared, config.upsert_keys, update_cols)
-        pool = self.db.require_pool()
         try:
-            async with pool.acquire() as conn:
-                async with conn.transaction():
-                    rows = await conn.fetch(q.sql, *q.args)
+            async with self.db.acquire() as conn:
+                rows = await conn.fetch(q.sql, *q.args)
         except UniqueViolationError as e:
             raise ConflictError(str(e), code="UNIQUE_VIOLATION") from e
         except asyncpg.exceptions.QueryCanceledError as e:
@@ -294,7 +302,7 @@ class ResourceService:
         ids: list[Any] | None = None,
         filters: dict[str, dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
-        ctx = get_request_context()
+        ctx = await self._authorize(name, "bulk_delete")
         acl = self._acl(name)
         acl.require_operation(ctx, "bulk_delete")
         config = self._resource(name)
@@ -302,11 +310,9 @@ class ResourceService:
         qb = self._qb(name)
         soft = config.soft_delete.enabled
         q = qb.build_bulk_delete(ctx, ids=coerced_ids or None, filters=filters, soft=soft)
-        pool = self.db.require_pool()
         try:
-            async with pool.acquire() as conn:
-                async with conn.transaction():
-                    rows = await conn.fetch(q.sql, *q.args)
+            async with self.db.acquire() as conn:
+                rows = await conn.fetch(q.sql, *q.args)
         except asyncpg.exceptions.QueryCanceledError as e:
             raise TimeoutAppError() from e
         return {"deleted": len(rows), "ids": [str(r[config.pk]) for r in rows]}
@@ -321,7 +327,7 @@ class ResourceService:
         filters: dict[str, dict[str, Any]] | None = None,
         include_deleted: bool = False,
     ) -> dict[str, Any]:
-        ctx = get_request_context()
+        ctx = await self._authorize(name, "aggregate")
         acl = self._acl(name)
         acl.require_operation(ctx, "aggregate")
         qb = self._qb(name)
@@ -364,6 +370,8 @@ class ResourceService:
                 include_deleted=include_deleted,
             )
             related_acl = ACLChecker(rel.resource, related)
+            if not await self.authz.allow(ctx, rel.resource, "list"):
+                raise ForbiddenError("authorization denied", code="AUTHZ_DENIED")
             related_acl.require_operation(ctx, "list")
             rows = await self._run(q.sql, q.args, many=True)
             related_rows = [

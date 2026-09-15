@@ -9,6 +9,7 @@ class RequestContext:
     tenant_id: str | None = None
     roles: tuple[str, ...] = field(default_factory=tuple)
     request_id: str | None = None
+    trusted: bool = False
 
     def has_role(self, role: str) -> bool:
         return role in self.roles

@@ -1,42 +1,42 @@
-# Errors
+# Ошибки
 
 ## Purpose
 
-Uniform error response shape and status code mapping.
+Единая форма ответа об ошибке и отображение HTTP-статусов.
 
 ## Requirements
 
-### Requirement: Error envelope
+### Requirement: Конверт ошибки
 
-Error responses SHALL use JSON body `{ "detail": string, "code": string }`.
+Ответы об ошибках SHALL использовать JSON-тело `{ "detail": string, "code": string }`.
 
-#### Scenario: Validation error shape
+#### Scenario: Форма ошибки валидации
 
-- **WHEN** a request body fails validation
-- **THEN** the response is 400 with `detail` and `code`
+- **WHEN** тело запроса не проходит валидацию
+- **THEN** ответ — 400 с `detail` и `code`
 
-### Requirement: Status mapping
+### Requirement: Отображение статусов
 
-The gateway SHALL map:
+Шлюз SHALL отображать:
 
-| Condition | Status | Typical code |
+| Условие | Статус | Типичный код |
 |-----------|--------|--------------|
-| Validation / bad query | 400 | `VALIDATION_ERROR` |
-| Forbidden / missing tenant / ACL | 403 | `FORBIDDEN` / `MISSING_TENANT` |
-| Not found | 404 | `NOT_FOUND` |
-| Unique violation | 409 | `UNIQUE_VIOLATION` |
-| Query timeout | 504 | `TIMEOUT` |
+| Валидация / некорректный query | 400 | `VALIDATION_ERROR` |
+| Запрещено / отсутствует tenant / ACL | 403 | `FORBIDDEN` / `MISSING_TENANT` |
+| Не найдено | 404 | `NOT_FOUND` |
+| Нарушение уникальности | 409 | `UNIQUE_VIOLATION` |
+| Таймаут запроса | 504 | `TIMEOUT` |
 
-#### Scenario: Unknown id
+#### Scenario: Неизвестный id
 
 - **WHEN** `GET /api/v1/users/{unknown}`
-- **THEN** response is 404 with `{detail, code}`
+- **THEN** ответ — 404 с `{detail, code}`
 
-### Requirement: List vs single response shapes
+### Requirement: Формы ответа списка и одиночного объекта
 
-Successful list responses SHALL be `{ data, meta }` where `meta` includes `total`, `limit`, `offset`. Successful single-object responses SHALL be the object itself (plain).
+Успешные ответы списка SHALL быть `{ data, meta }`, где `meta` включает `total`, `limit`, `offset`. Успешные ответы одиночного объекта SHALL быть самим объектом (без обёртки).
 
-#### Scenario: List envelope
+#### Scenario: Конверт списка
 
-- **WHEN** `GET /api/v1/users` succeeds
-- **THEN** body contains `data` array and `meta` object
+- **WHEN** `GET /api/v1/users` успешен
+- **THEN** тело содержит массив `data` и объект `meta`
