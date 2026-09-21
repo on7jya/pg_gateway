@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>pg_gateway — resources</title>
+  <title>pg_gateway — cert_dn grants</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -48,7 +48,7 @@
       position: absolute; left: 408px; top: 92px; width: 1104px;
     }
     .hero h1 {
-      font-size: 42px; font-weight: 700; color: #f8fafc; letter-spacing: -0.02em;
+      font-size: 40px; font-weight: 700; color: #f8fafc; letter-spacing: -0.02em;
     }
     .hero p { margin-top: 8px; color: #94a3b8; font-size: 18px; }
     .card {
@@ -64,7 +64,9 @@
       height: 8px;
       background: linear-gradient(90deg, #0d9488, #14b8a6);
     }
-    .card .body { padding: 18px 20px 16px; }
+    .card .top.deny { background: linear-gradient(90deg, #e11d48, #fb7185); }
+    .card .top.warn { background: linear-gradient(90deg, #d97706, #fbbf24); }
+    .card .body { padding: 16px 18px 14px; }
     .card .kicker {
       font-family: "IBM Plex Mono", monospace;
       font-size: 11px;
@@ -73,16 +75,27 @@
       letter-spacing: 0.08em;
       font-weight: 600;
     }
+    .card .kicker.deny { color: #e11d48; }
+    .card .kicker.warn { color: #d97706; }
     .card h3 {
       margin-top: 8px;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
       letter-spacing: -0.01em;
       line-height: 1.25;
-      min-height: 50px;
+      min-height: 46px;
+    }
+    .card .mono {
+      margin-top: 10px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      line-height: 1.45;
+      color: #334155;
+      white-space: pre-wrap;
+      word-break: break-all;
     }
     .card .meta {
-      margin-top: 14px;
+      margin-top: 12px;
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
@@ -96,89 +109,117 @@
       color: #334155;
     }
     .tag.accent { background: #ccfbf1; color: #0f766e; }
+    .tag.deny { background: #ffe4e6; color: #9f1239; }
+    .tag.warn { background: #fef3c7; color: #92400e; }
   </style>
 </head>
 <body>
   <div id="page">
     <header>
       <div class="logo">pg_gateway</div>
-      <div class="crumb">config.yaml → dynamic resources</div>
-      <div class="pill">OpenAPI 3.1 export</div>
+      <div class="crumb">authz.mode: cert_dn · accounts.yaml · ТУЗ grants</div>
+      <div class="pill">X-Client-Cert-DN</div>
     </header>
     <div class="hero">
-      <h1>Resources from YAML — not ORM models</h1>
-      <p>Whitelist tables &amp; fields once. FastAPI routes, ACL, and schemas appear at startup.</p>
+      <h1>Per-ТУЗ grants from certificate DN</h1>
+      <p>mTLS identity → endpoint ACL. No client X-Roles. No X-Tenant-Id.</p>
     </div>
 
-    <!-- cards aligned to live-layout.json projects.cards -->
+    <!-- cards aligned to live-layout.json projects.cards positions -->
     <div class="card" data-card="1" style="left:408px;top:247px;width:357.328125px;height:288px">
       <div class="top"></div><div class="body">
-        <div class="kicker">/api/v1/users</div>
-        <h3>Users resource</h3>
-        <div class="meta"><span class="tag accent">list · get · create</span><span class="tag">tenant ACL</span><span class="tag">soft-delete</span></div>
+        <div class="kicker">curl · 200</div>
+        <h3>GET /api/v1/orders</h3>
+        <div class="mono">-H "X-Client-Cert-DN:
+CN=orders-reader,OU=tuz,
+O=Acme,C=RU"</div>
+        <div class="meta"><span class="tag accent">ALLOWED</span><span class="tag">JSON list</span></div>
       </div>
     </div>
     <div class="card" data-card="2" style="left:781.328125px;top:247px;width:357.328125px;height:288px">
-      <div class="top"></div><div class="body">
-        <div class="kicker">/api/v1/orders</div>
-        <h3>Orders resource</h3>
-        <div class="meta"><span class="tag accent">filters</span><span class="tag">sort</span><span class="tag">include=users</span></div>
+      <div class="top deny"></div><div class="body">
+        <div class="kicker deny">curl · 403</div>
+        <h3>GET /api/v1/users</h3>
+        <div class="mono">same DN · other resource
+→ AUTHZ_DENIED</div>
+        <div class="meta"><span class="tag deny">DENIED</span><span class="tag">orders-reader</span></div>
       </div>
     </div>
     <div class="card" data-card="3" style="left:408px;top:616px;width:357.328125px;height:312px">
-      <div class="top"></div><div class="body">
-        <div class="kicker">YAML fields</div>
-        <h3>Type-safe field map</h3>
-        <div class="meta"><span class="tag">uuid · string · datetime</span><span class="tag accent">read/write</span></div>
+      <div class="top warn"></div><div class="body">
+        <div class="kicker warn">curl · 401</div>
+        <h3>Missing DN</h3>
+        <div class="mono">GET /api/v1/orders
+(no X-Client-Cert-DN)</div>
+        <div class="meta"><span class="tag warn">UNAUTHORIZED</span></div>
       </div>
     </div>
     <div class="card" data-card="4" style="left:781.328125px;top:616px;width:357.328125px;height:312px">
       <div class="top"></div><div class="body">
-        <div class="kicker">ACLChecker</div>
-        <h3>Role × operation gate</h3>
-        <div class="meta"><span class="tag accent">admin</span><span class="tag">reader</span><span class="tag">field deny</span></div>
+        <div class="kicker">ТУЗ · hero</div>
+        <h3>CN=orders-reader</h3>
+        <div class="mono">OU=tuz, O=Acme, C=RU
+grants.orders:
+  list · get · aggregate</div>
+        <div class="meta"><span class="tag accent">cert_dn</span><span class="tag">accounts.yaml</span></div>
       </div>
     </div>
     <div class="card" data-card="5" style="left:1154.65625px;top:616px;width:357.34375px;height:312px">
       <div class="top"></div><div class="body">
-        <div class="kicker">QueryBuilder</div>
-        <h3>Safe parameterized SQL</h3>
-        <div class="meta"><span class="tag">asyncpg</span><span class="tag accent">whitelist IDs</span></div>
+        <div class="kicker">fields · read</div>
+        <h3>orders field ACL</h3>
+        <div class="mono">id, user_id, order_number,
+status, total_amount,
+created_at</div>
+        <div class="meta"><span class="tag accent">write: []</span></div>
       </div>
     </div>
     <div class="card" data-card="6" style="left:408px;top:1009px;width:357.328125px;height:312px">
       <div class="top"></div><div class="body">
-        <div class="kicker">Row filters</div>
-        <h3>Tenant isolation</h3>
-        <div class="meta"><span class="tag">X-Tenant-Id</span><span class="tag accent">required</span></div>
+        <div class="kicker">header_stub vs</div>
+        <h3>cert_dn mode</h3>
+        <div class="mono">header_stub: X-Roles +
+X-Tenant-Id + trust token
+cert_dn: DN only</div>
+        <div class="meta"><span class="tag accent">mode switch</span></div>
       </div>
     </div>
     <div class="card" data-card="7" style="left:781.328125px;top:1009px;width:357.328125px;height:312px">
       <div class="top"></div><div class="body">
-        <div class="kicker">Relations</div>
-        <h3>Include depth = 1</h3>
-        <div class="meta"><span class="tag">joins</span><span class="tag accent">orders→users</span></div>
+        <div class="kicker">ingress</div>
+        <h3>mTLS → DN header</h3>
+        <div class="mono">Envoy / ingress verifies
+client cert, forwards
+X-Client-Cert-DN</div>
+        <div class="meta"><span class="tag">k8s</span><span class="tag accent">EnvoyFilter</span></div>
       </div>
     </div>
     <div class="card" data-card="8" style="left:1154.65625px;top:1009px;width:357.34375px;height:312px">
       <div class="top"></div><div class="body">
-        <div class="kicker">Batch ops</div>
-        <h3>Bulk create / upsert</h3>
-        <div class="meta"><span class="tag accent">batch_create</span><span class="tag">bulk_delete</span></div>
+        <div class="kicker">ТУЗ</div>
+        <h3>CN=users-admin</h3>
+        <div class="mono">grants.users:
+  list · get · create
+  update · patch · delete</div>
+        <div class="meta"><span class="tag accent">separate DN</span></div>
       </div>
     </div>
     <div class="card" data-card="9" style="left:408px;top:1402px;width:357.328125px;height:312px">
       <div class="top"></div><div class="body">
-        <div class="kicker">OpenAPI</div>
-        <h3>Export artifact</h3>
-        <div class="meta"><span class="tag">make openapi</span><span class="tag accent">3.1</span></div>
+        <div class="kicker">response · 200</div>
+        <h3>{"data":[],"meta":…}</h3>
+        <div class="mono">real cert_dn ASGI fixture
+status 200 · JSON list</div>
+        <div class="meta"><span class="tag accent">recorded</span></div>
       </div>
     </div>
     <div class="card" data-card="10" style="left:781.328125px;top:1402px;width:357.328125px;height:312px">
-      <div class="top"></div><div class="body">
-        <div class="kicker">docker-compose</div>
-        <h3>Demo CRM stack</h3>
-        <div class="meta"><span class="tag">Postgres 16</span><span class="tag accent">make up</span></div>
+      <div class="top deny"></div><div class="body">
+        <div class="kicker deny">response · 403</div>
+        <h3>AUTHZ_DENIED</h3>
+        <div class="mono">{"detail":"authorization
+denied","code":"AUTHZ_DENIED"}</div>
+        <div class="meta"><span class="tag deny">recorded</span></div>
       </div>
     </div>
   </div>

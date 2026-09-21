@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>pg_gateway — resource detail</title>
+  <title>pg_gateway — cert_dn responses</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -26,7 +26,7 @@
       padding: 28px 32px 36px;
       border: 1px solid #dbe3ee;
     }
-    h1 { font-size: 32px; letter-spacing: -0.02em; }
+    h1 { font-size: 30px; letter-spacing: -0.02em; }
     .sub { margin-top: 6px; color: #64748b; font-family: "IBM Plex Mono", monospace; font-size: 14px; }
     .row {
       position: absolute;
@@ -47,29 +47,31 @@
       background: #ccfbf1; color: #0f766e;
       min-width: 72px; text-align: center;
     }
-    .name { font-weight: 600; font-size: 16px; width: 180px; }
-    .type { font-family: "IBM Plex Mono", monospace; color: #475569; font-size: 13px; width: 140px; }
-    .flags { color: #64748b; font-size: 14px; }
+    .badge.deny { background: #ffe4e6; color: #9f1239; }
+    .badge.warn { background: #fef3c7; color: #92400e; }
+    .badge.mute { background: #e2e8f0; color: #475569; }
+    .name { font-weight: 600; font-size: 16px; width: 220px; }
+    .type { font-family: "IBM Plex Mono", monospace; color: #475569; font-size: 13px; width: 160px; }
+    .flags { color: #64748b; font-size: 14px; font-family: "IBM Plex Mono", monospace; flex: 1; }
   </style>
 </head>
 <body>
   <div id="page">
     <header>
       <div class="logo">pg_gateway</div>
-      <div>Resource detail · users</div>
+      <div>cert_dn · recorded responses · X-Client-Cert-DN</div>
     </header>
     <div class="panel">
-      <h1>users — field whitelist</h1>
-      <div class="sub">config.yaml → Pydantic schemas → OpenAPI paths</div>
+      <h1>orders-reader — live response ledger</h1>
+      <div class="sub">fixtures/cert_dn_responses.json · ASGI against Postgres</div>
     </div>
-    <!-- rows: absolute positions for layout.detail.rows compatibility -->
-    <div class="row" data-row="0" style="top:240px"><span class="badge">PK</span><span class="name">id</span><span class="type">uuid</span><span class="flags">read · auto · not null</span></div>
-    <div class="row" data-row="1" style="top:330px"><span class="badge">CTX</span><span class="name">tenant_id</span><span class="type">uuid</span><span class="flags">from X-Tenant-Id · required filter</span></div>
-    <div class="row" data-row="2" style="top:420px"><span class="badge">RW</span><span class="name">email</span><span class="type">string</span><span class="flags">create/patch · unique per tenant</span></div>
-    <div class="row" data-row="3" style="top:510px"><span class="badge">RW</span><span class="name">full_name</span><span class="type">string</span><span class="flags">create/patch</span></div>
-    <div class="row" data-row="4" style="top:600px"><span class="badge">RW</span><span class="name">status</span><span class="type">string</span><span class="flags">filter[eq] · sort</span></div>
-    <div class="row" data-row="5" style="top:690px"><span class="badge">RO</span><span class="name">created_at</span><span class="type">datetime</span><span class="flags">auto · sort=-created_at</span></div>
-    <div class="row" data-row="6" style="top:780px"><span class="badge">SOFT</span><span class="name">deleted_at</span><span class="type">datetime</span><span class="flags">hidden unless include_deleted</span></div>
+    <div class="row" data-row="0" style="top:240px"><span class="badge">200</span><span class="name">GET /orders</span><span class="type">OK</span><span class="flags">{"data":[],"meta":{"total":0,"limit":20,"offset":0}}</span></div>
+    <div class="row" data-row="1" style="top:330px"><span class="badge deny">403</span><span class="name">GET /users</span><span class="type">AUTHZ_DENIED</span><span class="flags">{"detail":"authorization denied","code":"AUTHZ_DENIED"}</span></div>
+    <div class="row" data-row="2" style="top:420px"><span class="badge warn">401</span><span class="name">missing DN</span><span class="type">UNAUTHORIZED</span><span class="flags">{"detail":"missing or unknown client certificate DN"}</span></div>
+    <div class="row" data-row="3" style="top:510px"><span class="badge">HDR</span><span class="name">X-Client-Cert-DN</span><span class="type">required</span><span class="flags">CN=orders-reader,OU=tuz,O=Acme,C=RU</span></div>
+    <div class="row" data-row="4" style="top:600px"><span class="badge mute">ACL</span><span class="name">orders.ops</span><span class="type">grant</span><span class="flags">list · get · aggregate · write: []</span></div>
+    <div class="row" data-row="5" style="top:690px"><span class="badge mute">ACL</span><span class="name">users</span><span class="type">no grant</span><span class="flags">same DN → 403 (X-Roles ignored)</span></div>
+    <div class="row" data-row="6" style="top:780px"><span class="badge">CFG</span><span class="name">accounts.yaml</span><span class="type">overlay</span><span class="flags">ACCOUNTS_CONFIG_PATH · authz.mode: cert_dn</span></div>
   </div>
 </body>
 </html>

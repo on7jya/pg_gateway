@@ -1,14 +1,14 @@
 /**
- * Minimal workbench manifest so `node workbench/scripts/open.mjs` can import the film.
- * Full schema-driven editing can be expanded later; this documents shot boundaries.
+ * Workbench manifest — shot boundaries from SHOTS (single source of truth).
+ * Open with: node ~/.cursor/skills/video-shotcraft/workbench/scripts/open.mjs promo
  */
-import {SHOT_TABLE, TOTAL_FRAMES} from './Main';
+import {SHOT_TABLE, TOTAL_FRAMES, FPS, WIDTH, HEIGHT} from './Main';
 
 export const workbench = {
   compositionId: 'PgGatewayPromo',
   durationInFrames: TOTAL_FRAMES,
-  fps: 30,
-  width: 1920,
-  height: 1080,
+  fps: FPS,
+  width: WIDTH,
+  height: HEIGHT,
   shots: SHOT_TABLE,
 };

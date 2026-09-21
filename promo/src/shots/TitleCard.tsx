@@ -1,25 +1,29 @@
 import React from 'react';
 import {AbsoluteFill, interpolate, useCurrentFrame, Easing} from 'remotion';
 
-export const TITLE_DURATION = 40;
+/** Default interstitial title length (~2.8s). Override via `duration`. */
+export const TITLE_DURATION = 84;
 
-export const TitleCard: React.FC<{line1: string; line2?: string; accent?: string}> = ({
-  line1,
-  line2,
-  accent = '#5eead4',
-}) => {
+export const TitleCard: React.FC<{
+  line1: string;
+  line2?: string;
+  accent?: string;
+  duration?: number;
+}> = ({line1, line2, accent = '#5eead4', duration = TITLE_DURATION}) => {
   const frame = useCurrentFrame();
-  const inT = interpolate(frame, [0, 12], [0, 1], {
+  const inT = interpolate(frame, [0, 14], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: Easing.bezier(0, 0, 0.2, 1),
   });
-  const hold = interpolate(frame, [TITLE_DURATION - 8, TITLE_DURATION], [1, 0], {
+  const hold = interpolate(frame, [duration - 10, duration], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
   const opacity = inT * hold;
   const y = (1 - inT) * 18;
+  const long = line1.length > 42;
+  const fontSize = long ? 48 : 56;
 
   return (
     <AbsoluteFill
@@ -30,7 +34,7 @@ export const TitleCard: React.FC<{line1: string; line2?: string; accent?: string
         fontFamily: '"IBM Plex Sans", sans-serif',
       }}
     >
-      <div style={{opacity, transform: `translateY(${y}px)`, textAlign: 'center', maxWidth: 1400}}>
+      <div style={{opacity, transform: `translateY(${y}px)`, textAlign: 'center', maxWidth: 1500}}>
         <div
           style={{
             fontFamily: '"IBM Plex Mono", monospace',
@@ -47,16 +51,29 @@ export const TitleCard: React.FC<{line1: string; line2?: string; accent?: string
         <div
           style={{
             color: '#f8fafc',
-            fontSize: 64,
+            fontSize,
             fontWeight: 700,
             letterSpacing: '-0.03em',
-            lineHeight: 1.1,
+            lineHeight: 1.15,
           }}
         >
           {line1}
         </div>
         {line2 ? (
-          <div style={{marginTop: 16, color: '#94a3b8', fontSize: 28, fontWeight: 500}}>{line2}</div>
+          <div
+            style={{
+              marginTop: 18,
+              color: '#94a3b8',
+              fontSize: 26,
+              fontWeight: 500,
+              lineHeight: 1.35,
+              maxWidth: 1100,
+              marginLeft: 'auto',
+              marginRight: 'auto',
+            }}
+          >
+            {line2}
+          </div>
         ) : null}
       </div>
     </AbsoluteFill>
