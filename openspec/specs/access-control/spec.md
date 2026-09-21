@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Описать stub-контекст аутентификации по заголовкам с обязательным trust-токеном, проводку `AuthzPort` в путь запроса, ACL ролей, права на уровне полей и изоляцию строк (включая Postgres RLS).
+Описать stub-контекст аутентификации по заголовкам с обязательным trust-токеном (`header_stub`), режим технических учётных записей по DN сертификата (`cert_dn`), проводку `AuthzPort` в путь запроса, ACL ролей/grants, права на уровне полей и изоляцию строк (включая Postgres RLS для демо с tenant).
 
 ## Requirements
 
@@ -34,9 +34,28 @@
 - **WHEN** передан валидный trust-токен и `X-Roles` содержит только неизвестные имена
 - **THEN** ответ — 403 (роли не прошли AuthzPort / ACL)
 
+### Requirement: Режим cert_dn (ТУЗ)
+
+В режиме `authz.mode: cert_dn` доверие к peer-сертификату MUST устанавливаться на ingress (mTLS verify). Шлюз MUST идентифицировать техническую учётную запись по заголовку DN (по умолчанию `X-Client-Cert-DN`, exact match после trim) и загружать права из `accounts.<DN>.grants`. Секция `accounts` MUST быть непустой при старте. У записи account MUST NOT быть поля `tenant_id`. `GATEWAY_TRUST_TOKEN` MUST NOT быть обязателен. Заголовки `X-Roles` и `X-Tenant-Id` MUST игнорироваться, даже если переданы. Envoy/ingress MUST NOT strip или rewrite `X-Client-Cert-DN` (pass-through); без peer cert edge MUST отвечать 401.
+
+#### Scenario: Пустой или неизвестный DN
+
+- **WHEN** запрос к API без `X-Client-Cert-DN` или с DN, отсутствующим в `accounts`
+- **THEN** ответ — 401 с `{detail, code: UNAUTHORIZED}`
+
+#### Scenario: Grant на ресурс
+
+- **WHEN** DN известен и у аккаунта есть grant на `orders`
+- **THEN** операции/поля берутся из grant; запрос к ресурсу вне grants — 403
+
+#### Scenario: Игнорирование Roles/Tenant
+
+- **WHEN** в режиме `cert_dn` переданы `X-Roles` и/или `X-Tenant-Id`
+- **THEN** они не влияют на контекст (`roles` пусты, `tenant_id` — `None`); решение — только по DN + grants
+
 ### Requirement: Фильтры строк из контекста
 
-Настроенные `row_filters` SHALL применяться ко всем запросам. Когда `required: true` и значение в контексте отсутствует, шлюз MUST отвечать HTTP 403 с кодом `MISSING_TENANT` (или эквивалентом).
+Настроенные `row_filters` SHALL применяться ко всем запросам. Когда `required: true` и значение в контексте отсутствует, шлюз MUST отвечать HTTP 403 с кодом `MISSING_TENANT` (или эквивалентом). Для сценариев `cert_dn` демо-конфиг MAY снимать обязательные tenant-фильтры (`required: false` или пустой `row_filters` в overlay).
 
 #### Scenario: Отсутствует tenant
 
@@ -59,21 +78,26 @@
 
 ### Requirement: ACL ролей
 
-Секция `roles` ресурса SHALL ограничивать операции и чтение/запись полей. Запросы без подходящей роли MUST отклоняться с 403.
+Секция `roles` ресурса SHALL ограничивать операции и чтение/запись полей в режиме `header_stub`. Запросы без подходящей роли MUST отклоняться с 403. В режиме `cert_dn` ACL SHALL браться только из `accounts.grants` (секция `resources.*.roles` не применяется).
 
 #### Scenario: Reader не может создавать
 
 - **WHEN** роль `reader` вызывает `POST /api/v1/users`
 - **THEN** ответ — 403
 
+#### Scenario: Grant field ACL
+
+- **WHEN** account grant задаёт ограниченный `fields.read`
+- **THEN** ответ содержит только разрешённые поля
+
 ### Requirement: Проводка AuthzPort
 
-Абстракция `AuthzPort` SHALL существовать для будущей внешней авторизации. Каждая операция ресурса (list/get/create/update/patch/delete/batch/upsert/bulk_delete/aggregate) MUST вызывать `authz.allow(...)` до выполнения и при `false` отвечать 403. Реализация header-stub v1 SHALL проверять trust-контекст и наличие валидной роли ресурса; детальные решения ACL остаются в `ACLChecker`.
+Абстракция `AuthzPort` SHALL существовать для будущей внешней авторизации. Каждая операция ресурса (list/get/create/update/patch/delete/batch/upsert/bulk_delete/aggregate) MUST вызывать `authz.allow(...)` до выполнения и при `false` отвечать 403. Реализация `HeaderStubAuthz` SHALL проверять trust-контекст и наличие валидной роли ресурса; `CertDnAuthz` SHALL разрешать ресурс iff у аккаунта есть grant. Детальные решения ACL остаются в `ACLChecker`.
 
 #### Scenario: Порт внедряем и вызывается
 
 - **WHEN** приложение запускается
-- **THEN** конкретная реализация `AuthzPort` привязана к состоянию приложения
+- **THEN** конкретная реализация `AuthzPort` привязана к состоянию приложения (`HeaderStubAuthz` или `CertDnAuthz` по `authz.mode`)
 
 #### Scenario: Отказ AuthzPort
 

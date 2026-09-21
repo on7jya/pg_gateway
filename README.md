@@ -13,9 +13,9 @@ Client → FastAPI (dynamic routers) → AuthzPort + ACL + row filters → Query
 | Компонент | Роль |
 |-----------|------|
 | `config/config.yaml` | Ресурсы, поля, ACL, связи, фильтры, soft-delete |
-| `RequestContext` middleware | Trust-токен + `X-Tenant-Id` / `X-Roles` → контекст |
-| `AuthzPort` | Подключаемая авторизация (сейчас header stub; позже HTTP-сервис) |
-| `ACLChecker` | Права на операции и поля по ролям |
+| `RequestContext` middleware | `header_stub`: trust + tenant/roles; `cert_dn`: `X-Client-Cert-DN` → ТУЗ |
+| `AuthzPort` | Подключаемая авторизация (`HeaderStubAuthz` / `CertDnAuthz`) |
+| `ACLChecker` | Права на операции и поля по ролям или `accounts.grants` |
 | `QueryBuilder` | Безопасный SQL (quoted-идентификаторы из whitelist) |
 | Postgres RLS | `FORCE ROW LEVEL SECURITY` на демо-таблицах по `app.tenant_id` |
 | `openapi.yaml` | Экспортируемый артефакт (OpenAPI 3.1), не источник истины |
@@ -26,6 +26,7 @@ Client → FastAPI (dynamic routers) → AuthzPort + ACL + row filters → Query
 - **Python 3.11+** (для CI/локальных тестов на старых хостовых Python рекомендуется Docker)
 - Docker Compose (для Postgres и полного стека)
 - Переменная `GATEWAY_TRUST_TOKEN` **обязательна**, если `authz.mode=header_stub`
+- Режим `cert_dn` (ТУЗ): overlay `ACCOUNTS_CONFIG_PATH`, mTLS на ingress, заголовок `X-Client-Cert-DN` — см. `config/accounts.example.yaml` и `deploy/k8s/`
 
 ## Быстрый старт
 
@@ -59,6 +60,24 @@ Ready (нужен токен): `GET http://localhost:8000/ready` с заголо
 Seed tenant B: `22222222-2222-2222-2222-222222222222`
 
 Заголовки tenant/roles принимаются **только после** успешной проверки trust-токена. Неизвестные роли отбрасываются; если валидных не осталось → 403.
+
+## Режим cert_dn (ТУЗ)
+
+Локально (поверх базового `config/config.yaml`):
+
+```bash
+export CONFIG_PATH=config/config.yaml
+export ACCOUNTS_CONFIG_PATH=config/accounts.example.yaml
+# GATEWAY_TRUST_TOKEN не нужен
+uvicorn pg_gateway.main:app --reload --port 8000
+```
+
+```bash
+curl -s "http://localhost:8000/api/v1/orders" \
+  -H "X-Client-Cert-DN: CN=orders-reader,OU=tuz,O=Acme,C=RU" | jq
+```
+
+Права берутся из `accounts.<DN>.grants`. `X-Roles` / `X-Tenant-Id` игнорируются. K8s: `deploy/k8s/`.
 
 ## Демо curl-сценарии
 

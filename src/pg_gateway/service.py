@@ -34,8 +34,19 @@ class ResourceService:
         except KeyError as e:
             raise NotFoundError(f"unknown resource: {name}") from e
 
-    def _acl(self, name: str) -> ACLChecker:
-        return ACLChecker(name, self._resource(name))
+    def _acl(self, name: str, ctx: RequestContext | None = None) -> ACLChecker:
+        account_mode = bool(ctx and ctx.account_dn)
+        account_grant = None
+        if account_mode and ctx is not None and ctx.account_dn:
+            account = self.app_config.account(ctx.account_dn)
+            if account is not None:
+                account_grant = account.grants.get(name)
+        return ACLChecker(
+            name,
+            self._resource(name),
+            account_grant=account_grant,
+            account_mode=account_mode,
+        )
 
     def _qb(self, name: str) -> QueryBuilder:
         return QueryBuilder(name, self._resource(name))
@@ -46,7 +57,9 @@ class ResourceService:
             raise ForbiddenError("authorization denied", code="AUTHZ_DENIED")
         return ctx
 
-    def _inject_row_context(self, ctx: RequestContext, config: ResourceConfig, payload: dict) -> dict:
+    def _inject_row_context(
+        self, ctx: RequestContext, config: ResourceConfig, payload: dict
+    ) -> dict:
         data = dict(payload)
         for rf in config.row_filters:
             ctx_val = getattr(ctx, rf.from_context, None)
@@ -75,7 +88,7 @@ class ResourceService:
             raise TimeoutAppError() from e
 
     def _present(self, name: str, ctx: RequestContext, row: dict) -> dict:
-        acl = self._acl(name)
+        acl = self._acl(name, ctx)
         return serialize_row(acl.filter_read_payload(ctx, row))
 
     async def list_resources(
@@ -90,9 +103,8 @@ class ResourceService:
         include_deleted: bool = False,
     ) -> dict[str, Any]:
         ctx = await self._authorize(name, "list")
-        acl = self._acl(name)
+        acl = self._acl(name, ctx)
         acl.require_operation(ctx, "list")
-        config = self._resource(name)
         qb = self._qb(name)
         cols = list(acl.readable_fields(ctx))
         sort_spec = parse_sort_param(sort)
@@ -131,7 +143,7 @@ class ResourceService:
         include_deleted: bool = False,
     ) -> dict[str, Any]:
         ctx = await self._authorize(name, "get")
-        acl = self._acl(name)
+        acl = self._acl(name, ctx)
         acl.require_operation(ctx, "get")
         qb = self._qb(name)
         cols = list(acl.readable_fields(ctx))
@@ -152,7 +164,7 @@ class ResourceService:
 
     async def create(self, name: str, payload: dict[str, Any]) -> dict[str, Any]:
         ctx = await self._authorize(name, "create")
-        acl = self._acl(name)
+        acl = self._acl(name, ctx)
         acl.require_operation(ctx, "create")
         config = self._resource(name)
         data = self._inject_row_context(ctx, config, payload)
@@ -192,9 +204,8 @@ class ResourceService:
         partial: bool,
     ) -> dict[str, Any]:
         ctx = await self._authorize(name, operation)
-        acl = self._acl(name)
+        acl = self._acl(name, ctx)
         acl.require_operation(ctx, operation)
-        config = self._resource(name)
         writable = acl.writable_fields(ctx)
         for k in payload:
             if k not in writable:
@@ -213,7 +224,7 @@ class ResourceService:
 
     async def delete(self, name: str, id_value: str) -> dict[str, Any]:
         ctx = await self._authorize(name, "delete")
-        acl = self._acl(name)
+        acl = self._acl(name, ctx)
         acl.require_operation(ctx, "delete")
         config = self._resource(name)
         qb = self._qb(name)
@@ -230,7 +241,7 @@ class ResourceService:
 
     async def batch_create(self, name: str, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         ctx = await self._authorize(name, "batch_create")
-        acl = self._acl(name)
+        acl = self._acl(name, ctx)
         acl.require_operation(ctx, "batch_create")
         config = self._resource(name)
         writable = set(acl.writable_fields(ctx))
@@ -260,7 +271,7 @@ class ResourceService:
 
     async def upsert(self, name: str, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         ctx = await self._authorize(name, "upsert")
-        acl = self._acl(name)
+        acl = self._acl(name, ctx)
         acl.require_operation(ctx, "upsert")
         config = self._resource(name)
         if not config.upsert_keys:
@@ -289,10 +300,12 @@ class ResourceService:
         filters: dict[str, dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         ctx = await self._authorize(name, "bulk_delete")
-        acl = self._acl(name)
+        acl = self._acl(name, ctx)
         acl.require_operation(ctx, "bulk_delete")
         config = self._resource(name)
-        coerced_ids = [coerce_pk(str(i)) if not isinstance(i, (int, UUID)) else i for i in (ids or [])]
+        coerced_ids = [
+            coerce_pk(str(i)) if not isinstance(i, (int, UUID)) else i for i in (ids or [])
+        ]
         qb = self._qb(name)
         soft = config.soft_delete.enabled
         q = qb.build_bulk_delete(ctx, ids=coerced_ids or None, filters=filters, soft=soft)
@@ -310,7 +323,7 @@ class ResourceService:
         include_deleted: bool = False,
     ) -> dict[str, Any]:
         ctx = await self._authorize(name, "aggregate")
-        acl = self._acl(name)
+        acl = self._acl(name, ctx)
         acl.require_operation(ctx, "aggregate")
         qb = self._qb(name)
         q = qb.build_aggregate(
@@ -348,7 +361,7 @@ class ResourceService:
                 ctx=ctx,
                 include_deleted=include_deleted,
             )
-            related_acl = ACLChecker(rel.resource, related)
+            related_acl = self._acl(rel.resource, ctx)
             if not await self.authz.allow(ctx, rel.resource, "list"):
                 raise ForbiddenError("authorization denied", code="AUTHZ_DENIED")
             related_acl.require_operation(ctx, "list")

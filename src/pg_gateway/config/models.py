@@ -50,6 +50,14 @@ class AuthzConfig(BaseModel):
     tenant_header: str = "X-Tenant-Id"
     roles_header: str = "X-Roles"
     trust_header: str = "X-Gateway-Token"
+    client_dn_header: str = "X-Client-Cert-DN"
+
+    @field_validator("mode")
+    @classmethod
+    def validate_mode(cls, v: str) -> str:
+        if v not in ("header_stub", "cert_dn"):
+            raise ValueError(f"unsupported authz.mode: {v!r} (expected header_stub|cert_dn)")
+        return v
 
 
 class SoftDeleteConfig(BaseModel):
@@ -94,6 +102,12 @@ class RoleFieldAccess(BaseModel):
 class RoleAccess(BaseModel):
     operations: list[str] | None = None  # None = all enabled ops
     fields: RoleFieldAccess | None = None
+
+
+class AccountConfig(BaseModel):
+    """Technical account (ТУЗ) identified by certificate Subject DN."""
+
+    grants: dict[str, RoleAccess] = Field(default_factory=dict)
 
 
 class RelationType(str, Enum):
@@ -142,6 +156,7 @@ class AppConfig(BaseModel):
     gateway: GatewayConfig = Field(default_factory=GatewayConfig)
     authz: AuthzConfig = Field(default_factory=AuthzConfig)
     resources: dict[str, ResourceConfig]
+    accounts: dict[str, AccountConfig] = Field(default_factory=dict)
 
     @field_validator("resources")
     @classmethod
@@ -150,10 +165,71 @@ class AppConfig(BaseModel):
             raise ValueError("at least one resource is required")
         return v
 
+    @field_validator("accounts", mode="before")
+    @classmethod
+    def normalize_account_dns(cls, v: Any) -> Any:
+        if not isinstance(v, dict):
+            return v
+        return {str(k).strip(): val for k, val in v.items()}
+
+    @model_validator(mode="after")
+    def validate_accounts_for_mode(self) -> AppConfig:
+        if self.authz.mode == "cert_dn" and not self.accounts:
+            raise ValueError("accounts must be non-empty when authz.mode=cert_dn")
+
+        op_flags = (
+            "list",
+            "get",
+            "create",
+            "update",
+            "patch",
+            "delete",
+            "batch_create",
+            "bulk_delete",
+            "upsert",
+            "aggregate",
+        )
+        for dn, account in self.accounts.items():
+            if not dn:
+                raise ValueError("account DN keys must be non-empty after trim")
+            for resource_name, grant in account.grants.items():
+                if resource_name not in self.resources:
+                    raise ValueError(
+                        f"account {dn!r}: grant resource {resource_name!r} is not a known resource"
+                    )
+                rc = self.resources[resource_name]
+                if grant.operations is not None:
+                    for op in grant.operations:
+                        if op not in op_flags:
+                            raise ValueError(
+                                f"account {dn!r}: unknown operation {op!r} "
+                                f"on resource {resource_name!r}"
+                            )
+                        if not getattr(rc.operations, op, False):
+                            raise ValueError(
+                                f"account {dn!r}: operation {op!r} is disabled "
+                                f"on resource {resource_name!r}"
+                            )
+                if grant.fields is not None:
+                    declared = set(rc.fields)
+                    for side, names in (("read", grant.fields.read), ("write", grant.fields.write)):
+                        if names is None:
+                            continue
+                        unknown = set(names) - declared
+                        if unknown:
+                            raise ValueError(
+                                f"account {dn!r}: grant {side} fields {sorted(unknown)} "
+                                f"not declared on resource {resource_name!r}"
+                            )
+        return self
+
     def resource(self, name: str) -> ResourceConfig:
         if name not in self.resources:
             raise KeyError(name)
         return self.resources[name]
+
+    def account(self, dn: str) -> AccountConfig | None:
+        return self.accounts.get(dn)
 
 
 class Settings(BaseModel):
@@ -161,6 +237,7 @@ class Settings(BaseModel):
 
     database_url: str = "postgresql://gateway:gateway@localhost:5432/gateway"
     config_path: str = "config/config.yaml"
+    accounts_config_path: str = ""
     host: str = "0.0.0.0"
     port: int = 8000
     log_level: str = "info"
@@ -176,6 +253,7 @@ class Settings(BaseModel):
                 "postgresql://gateway:gateway@localhost:5432/gateway",
             ),
             config_path=os.getenv("CONFIG_PATH", "config/config.yaml"),
+            accounts_config_path=os.getenv("ACCOUNTS_CONFIG_PATH", ""),
             host=os.getenv("HOST", "0.0.0.0"),
             port=int(os.getenv("PORT", "8000")),
             log_level=os.getenv("LOG_LEVEL", "info"),

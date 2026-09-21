@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 class RequestContext:
     tenant_id: str | None = None
     roles: tuple[str, ...] = field(default_factory=tuple)
+    account_dn: str | None = None
     request_id: str | None = None
     trusted: bool = False
 
