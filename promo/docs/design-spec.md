@@ -1,46 +1,83 @@
-# pg_gateway promo — дизайн-спека (автономное свободное создание)
+# pg_gateway promo — design spec (autonomous free creation)
 
-## Режим
-Автономное свободное создание с зафиксированными пользователем ограничениями по кадрам:
-`deck-deal-flyin`, `row-embed`, крупный план продукта в духе `spotlight-hero-card`.
+## Mode
+Autonomous free creation with user-fixed shot constraints:
+`deck-deal-flyin`, `row-embed`, `spotlight-hero-card`, plus handcrafted
+`config-reveal` and expanded `curl-proof` (CRUD theater).
 
-## Бриф продукта
-- **Продукт**: pg_gateway — конфигурируемый FastAPI API Gateway для PostgreSQL
-- **Аудитория**: backend / platform-инженеры
-- **Ключевое предложение**: YAML-конфиг → динамические маршруты + ACL + OpenAPI; без жёстко заданной схемы БД
-- **Данные**: вымышленное демо-CRM (users/orders/products); без секретов
-- **Формат**: 1920×1080 @ 30fps, только SFX (без BGM)
-- **Язык онскрина**: English
+## Product brief
+- **Product**: pg_gateway — config-driven REST API in front of PostgreSQL
+- **Audience**: backend / platform / security-minded engineering leads (RU market)
+- **Core offer**: per-ТУЗ endpoint grants via certificate DN (`authz.mode: cert_dn`); field/operation ACL; config-first CRUD without custom backends
+- **Demo arc**: show YAML **first** (`accounts.example.yaml` users-admin + `config.yaml` users ops) → then live curls for that grant shape
+- **Data**: live Postgres via gateway (`promo/fixtures/users_crud_responses.json`); demo CRM names only; deny body from cert_dn ASGI (`orders-reader` → `/users` 403)
+- **Format**: 1920×1080 @ 30fps, **~155s (4656f)** — quality over length
+- **On-screen language**: **Russian** business/sales copy; product tokens / DN / HTTP codes kept literal
 
-## Визуальное направление
-- **Пресет**: professional / enterprise («专业信赖») с чёткой инженерной энергией
-- **Токены**
-  - bg: `#0b1220` / surface: `#121a2b` / paper panel: `#f4f7fb`
-  - ink: `#0f172a` / muted: `#64748b`
-  - accent: `#0d9488` (teal) — не purple
-  - font UI: `"IBM Plex Sans", "Segoe UI", sans-serif`
-  - font mono: `"IBM Plex Mono", ui-monospace, monospace`
-- **Motion-токены**: основная длительность ~21f, ease `bezier(0,0,0.2,1)`; приземления могут overshoot, если метафора требует bounce (побеждает юриспруденция shot-card)
+## Config shown on screen
+1. **`accounts.example.yaml`** (from cert_dn overlay) — `CN=users-admin` grants on `users`:
+   `list, get, create, update, patch, delete` + field ACL
+2. **`config.yaml` · `resources.users`** — soft_delete, operations (incl. upsert/batch), filterable, upsert_keys
 
-## Карта feature → shot
-| Фича | Кадр | Почему |
-|------|------|--------|
-| Ресурс как атомарная единица | spotlight-hero-card | Одиночный hero, крупный план продукта |
-| Конфиг разворачивается в множество маршрутов | deck-deal-flyin | Плотность / непрерывный приток |
-| Поля схемы встраиваются в API-поверхность | row-embed | Структурированные данные вырастают в страницу |
+## Curl sequence (statuses)
+| Beat | Method | Path | Status |
+|------|--------|------|--------|
+| list | GET | `/api/v1/users?limit=5` | **200** (alice, bob) |
+| get | GET | `/api/v1/users/{alice}` | **200** |
+| create | POST | `/api/v1/users` | **201** (Anna Promo) |
+| patch | PATCH | `/api/v1/users/{id}` | **200** (name/status updated) |
+| filter | GET | `/users?filter[email][eq]=…` | **200** |
+| upsert | POST | `/api/v1/users/upsert` | **200** |
+| delete | DELETE | `/api/v1/users/{id}` | **200** (soft-delete) |
+| get_after_delete | GET | same id | **404** |
+| deny | GET | `/api/v1/users` as `orders-reader` | **403** AUTHZ_DENIED |
 
-## Раскадровка (кадры @30fps)
-| # | from | dur | content | card |
-|---|------|-----|---------|------|
-| 1 | 0 | 139 | Spotlight карточки ресурса + float + beam | spotlight-hero-card |
-| 2 | 139 | 40 | Title breath: “YAML in. Routes out.” | title |
-| 3 | 179 | 113 | Раздача колоды в сетку ресурсов | deck-deal-flyin |
-| 4 | 292 | 36 | Title: “Fields land in the API.” | title |
-| 5 | 328 | 68 | Row embed на detail ресурса | row-embed |
-| 6 | 396 | 54 | Brand lockup hold | outro |
-| **Итого** | | **450f / 15.0s** | | |
+Curl commands on screen use `X-Client-Cert-DN: CN=users-admin,…` to match the YAML grant story.
+Success bodies recorded against live Postgres (gateway); deny captured from cert_dn overlay.
 
-## Acceptance-кадры
-- Spotlight: 48, 90, 130
-- Deck: 20, 70, 110
-- Rows: 24, 50, 66
+## Visual direction
+- **Preset**: professional / enterprise with engineering energy
+- **Tokens**: bg `#0b1220`, accent `#0d9488` (teal), ok `#10b981`, deny `#f43f5e`, warn `#f59e0b`
+- **Fonts**: IBM Plex Sans / Mono
+
+## Feature → shot map
+| Feature | Shot |
+|---------|------|
+| Pain / solution | title cards |
+| DN grant atom | spotlight-hero-card |
+| Request density | deck-deal-flyin |
+| Structured responses | row-embed |
+| Config-first story | ConfigReveal (YAML theater) |
+| CRUD proof | CurlProof (9 beats) |
+| Close CTA | outro |
+
+## Storyboard (@30fps · 4656f / 155.2s)
+| # | from | dur | Beat | card |
+|---|------|-----|------|------|
+| 1 | 0 | 90 | Недели на бэкенд — ради одного API? | title |
+| 2 | 90 | 84 | Быстрый API к PostgreSQL из YAML | title |
+| 3 | 174 | 160 | DN — это грант ТУЗ | spotlight-hero-card |
+| 4 | 334 | 84 | Каждому ТУЗ — только свои эндпоинты | title |
+| 5 | 418 | 130 | Deck-deal grid | deck-deal-flyin |
+| 6 | 548 | 84 | Меньше утечек лишних данных | title |
+| 7 | 632 | 100 | Row-embed ledger | row-embed |
+| 8 | 732 | 84 | Без X-Roles и X-Tenant-Id | title |
+| 9 | 816 | 90 | Сначала конфиг — потом API | title |
+| 10 | 906 | 420 | YAML: accounts users-admin → resources.users | config-reveal |
+| 11 | 1326 | 90 | Тот же YAML. Живые curl. | title |
+| 12 | 1416 | 2880 | CRUD theater (9×320f) | curl-proof |
+| 13 | 4296 | 90 | Конфиг вместо недель разработки | title |
+| 14 | 4386 | 270 | Outro CTA | outro |
+| **Total** | | **4656f / 155.2s** | | |
+
+## Fixtures
+- `fixtures/accounts.example.yaml` — cert_dn overlay source
+- `fixtures/config_snippets.json` — on-screen YAML excerpts
+- `fixtures/users_crud_responses.json` — live CRUD + deny
+- `fixtures/cert_dn_responses.json` — earlier cert_dn smoke (kept)
+
+## Acceptance frames (absolute)
+- Spotlight: 210, 300
+- Config reveal: 950, 1150
+- Curl create/patch/deny: 2100, 2700, 4000
+- Outro: 4450

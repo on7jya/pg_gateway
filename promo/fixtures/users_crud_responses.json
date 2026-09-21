@@ -1,0 +1,197 @@
+{
+  "meta": {
+    "story": "users-admin grants (accounts.example.yaml) → CRUD on /users",
+    "dn": "CN=users-admin,OU=tuz,O=Acme,C=RU",
+    "note": "Bodies recorded against live Postgres via gateway; curl cmds illustrate cert_dn users-admin grant"
+  },
+  "list": {
+    "status": 200,
+    "method": "GET",
+    "path": "/api/v1/users?limit=5",
+    "label": "список",
+    "headline": "GET /users — данные из PostgreSQL",
+    "cmd": "curl -s \"http://localhost:8000/api/v1/users?limit=5\" \\\n  -H \"X-Client-Cert-DN: CN=users-admin,OU=tuz,O=Acme,C=RU\"",
+    "body": {
+      "data": [
+        {
+          "id": "a0000000-0000-0000-0000-000000000001",
+          "email": "alice@acme.test",
+          "full_name": "Alice Admin",
+          "status": "active",
+          "created_at": "2026-09-15T04:25:48.467236+00:00",
+          "deleted_at": null,
+          "tenant_id": "11111111-1111-1111-1111-111111111111"
+        },
+        {
+          "id": "a0000000-0000-0000-0000-000000000002",
+          "email": "bob@acme.test",
+          "full_name": "Bob Buyer",
+          "status": "active",
+          "created_at": "2026-09-15T04:25:48.467236+00:00",
+          "deleted_at": null,
+          "tenant_id": "11111111-1111-1111-1111-111111111111"
+        }
+      ],
+      "meta": {
+        "total": 50,
+        "limit": 5,
+        "offset": 0
+      }
+    }
+  },
+  "get": {
+    "status": 200,
+    "method": "GET",
+    "path": "/api/v1/users/a0000000-0000-0000-0000-000000000001",
+    "label": "по id",
+    "headline": "GET /users/:id — конкретная запись",
+    "cmd": "curl -s \"http://localhost:8000/api/v1/users/a0000000-0000-0000-0000-000000000001\" \\\n  -H \"X-Client-Cert-DN: CN=users-admin,OU=tuz,O=Acme,C=RU\"",
+    "body": {
+      "id": "a0000000-0000-0000-0000-000000000001",
+      "email": "alice@acme.test",
+      "full_name": "Alice Admin",
+      "status": "active",
+      "created_at": "2026-09-15T04:25:48.467236+00:00",
+      "deleted_at": null,
+      "tenant_id": "11111111-1111-1111-1111-111111111111"
+    }
+  },
+  "create": {
+    "status": 201,
+    "method": "POST",
+    "path": "/api/v1/users",
+    "label": "создать",
+    "headline": "POST /users — 201 Created",
+    "cmd": "curl -s -X POST \"http://localhost:8000/api/v1/users\" \\\n  -H \"X-Client-Cert-DN: CN=users-admin,OU=tuz,O=Acme,C=RU\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"email\": \"anna.promo@acme.test\", \"full_name\": \"Anna Promo\", \"status\": \"active\"}'",
+    "request": {
+      "email": "anna.promo@acme.test",
+      "full_name": "Anna Promo",
+      "status": "active"
+    },
+    "body": {
+      "id": "cfc23a75-5b70-42ed-ac8f-b4ef5790d59b",
+      "email": "anna.promo@acme.test",
+      "full_name": "Anna Promo",
+      "status": "active",
+      "created_at": "2026-09-21T21:22:42.695725+00:00",
+      "deleted_at": null,
+      "tenant_id": "11111111-1111-1111-1111-111111111111"
+    }
+  },
+  "patch": {
+    "status": 200,
+    "method": "PATCH",
+    "path": "/api/v1/users/cfc23a75-5b70-42ed-ac8f-b4ef5790d59b",
+    "label": "обновить",
+    "headline": "PATCH — поля изменились",
+    "cmd": "curl -s -X PATCH \"http://localhost:8000/api/v1/users/cfc23a75-5b70-42ed-ac8f-b4ef5790d59b\" \\\n  -H \"X-Client-Cert-DN: CN=users-admin,OU=tuz,O=Acme,C=RU\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"full_name\": \"Anna Promo Updated\", \"status\": \"inactive\"}'",
+    "request": {
+      "full_name": "Anna Promo Updated",
+      "status": "inactive"
+    },
+    "body": {
+      "id": "cfc23a75-5b70-42ed-ac8f-b4ef5790d59b",
+      "email": "anna.promo@acme.test",
+      "full_name": "Anna Promo Updated",
+      "status": "inactive",
+      "created_at": "2026-09-21T21:22:42.695725+00:00",
+      "deleted_at": null,
+      "tenant_id": "11111111-1111-1111-1111-111111111111"
+    }
+  },
+  "filter": {
+    "status": 200,
+    "method": "GET",
+    "path": "/api/v1/users?filter[email][eq]=anna.promo@acme.test",
+    "label": "фильтр",
+    "headline": "filter[email][eq] — запрос из конфига",
+    "cmd": "curl -s \"http://localhost:8000/api/v1/users?filter[email][eq]=anna.promo@acme.test\" \\\n  -H \"X-Client-Cert-DN: CN=users-admin,OU=tuz,O=Acme,C=RU\"",
+    "body": {
+      "data": [
+        {
+          "id": "cfc23a75-5b70-42ed-ac8f-b4ef5790d59b",
+          "email": "anna.promo@acme.test",
+          "full_name": "Anna Promo Updated",
+          "status": "inactive",
+          "created_at": "2026-09-21T21:22:42.695725+00:00",
+          "deleted_at": null,
+          "tenant_id": "11111111-1111-1111-1111-111111111111"
+        }
+      ],
+      "meta": {
+        "total": 1,
+        "limit": 20,
+        "offset": 0
+      }
+    }
+  },
+  "upsert": {
+    "status": 200,
+    "method": "POST",
+    "path": "/api/v1/users/upsert",
+    "label": "upsert",
+    "headline": "POST /upsert — ON CONFLICT из YAML",
+    "cmd": "curl -s -X POST \"http://localhost:8000/api/v1/users/upsert\" \\\n  -H \"X-Client-Cert-DN: CN=users-admin,OU=tuz,O=Acme,C=RU\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"items\": [{\"email\": \"upsert.promo@acme.test\", \"full_name\": \"Upsert Promo\", \"status\": \"active\"}]}'",
+    "request": {
+      "items": [
+        {
+          "email": "upsert.promo@acme.test",
+          "full_name": "Upsert Promo",
+          "status": "active"
+        }
+      ]
+    },
+    "body": [
+      {
+        "id": "b6c3e483-2d13-468a-a386-3ec3fa5e5465",
+        "email": "upsert.promo@acme.test",
+        "full_name": "Upsert Promo",
+        "status": "active",
+        "created_at": "2026-09-21T21:22:42.702638+00:00",
+        "deleted_at": null,
+        "tenant_id": "11111111-1111-1111-1111-111111111111"
+      }
+    ]
+  },
+  "delete": {
+    "status": 200,
+    "method": "DELETE",
+    "path": "/api/v1/users/cfc23a75-5b70-42ed-ac8f-b4ef5790d59b",
+    "label": "удалить",
+    "headline": "DELETE — soft-delete (deleted_at)",
+    "cmd": "curl -s -X DELETE \"http://localhost:8000/api/v1/users/cfc23a75-5b70-42ed-ac8f-b4ef5790d59b\" \\\n  -H \"X-Client-Cert-DN: CN=users-admin,OU=tuz,O=Acme,C=RU\"",
+    "body": {
+      "id": "cfc23a75-5b70-42ed-ac8f-b4ef5790d59b",
+      "email": "anna.promo@acme.test",
+      "full_name": "Anna Promo Updated",
+      "status": "inactive",
+      "created_at": "2026-09-21T21:22:42.695725+00:00",
+      "deleted_at": "2026-09-21T21:22:42.704099+00:00",
+      "tenant_id": "11111111-1111-1111-1111-111111111111"
+    }
+  },
+  "get_after_delete": {
+    "status": 404,
+    "method": "GET",
+    "path": "/api/v1/users/cfc23a75-5b70-42ed-ac8f-b4ef5790d59b",
+    "label": "после delete",
+    "headline": "GET после soft-delete → 404",
+    "cmd": "curl -s \"http://localhost:8000/api/v1/users/cfc23a75-5b70-42ed-ac8f-b4ef5790d59b\" \\\n  -H \"X-Client-Cert-DN: CN=users-admin,OU=tuz,O=Acme,C=RU\"",
+    "body": {
+      "detail": "resource not found",
+      "code": "NOT_FOUND"
+    }
+  },
+  "deny": {
+    "status": 403,
+    "method": "GET",
+    "path": "/api/v1/users",
+    "label": "запрещено",
+    "headline": "orders-reader → /users · 403",
+    "cmd": "curl -s \"http://localhost:8000/api/v1/users\" \\\n  -H \"X-Client-Cert-DN: CN=orders-reader,OU=tuz,O=Acme,C=RU\"",
+    "body": {
+      "detail": "authorization denied",
+      "code": "AUTHZ_DENIED"
+    }
+  }
+}

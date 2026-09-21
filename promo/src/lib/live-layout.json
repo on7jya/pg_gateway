@@ -15,7 +15,7 @@
     "y": 247,
     "w": 357.328125,
     "h": 288,
-    "title": "Users resource"
+    "title": "GET /api/v1/orders"
    },
    {
     "file": "card2.png",
@@ -23,7 +23,7 @@
     "y": 247,
     "w": 357.328125,
     "h": 288,
-    "title": "Orders resource"
+    "title": "GET /api/v1/users"
    },
    {
     "file": "card3.png",
@@ -31,7 +31,7 @@
     "y": 616,
     "w": 357.328125,
     "h": 312,
-    "title": "Type-safe field map"
+    "title": "Missing DN"
    },
    {
     "file": "card4.png",
@@ -39,7 +39,7 @@
     "y": 616,
     "w": 357.328125,
     "h": 312,
-    "title": "Role × operation gate"
+    "title": "CN=orders-reader"
    },
    {
     "file": "card5.png",
@@ -47,7 +47,7 @@
     "y": 616,
     "w": 357.34375,
     "h": 312,
-    "title": "Safe parameterized SQL"
+    "title": "orders field ACL"
    },
    {
     "file": "card6.png",
@@ -55,7 +55,7 @@
     "y": 1009,
     "w": 357.328125,
     "h": 312,
-    "title": "Tenant isolation"
+    "title": "cert_dn mode"
    },
    {
     "file": "card7.png",
@@ -63,7 +63,7 @@
     "y": 1009,
     "w": 357.328125,
     "h": 312,
-    "title": "Include depth = 1"
+    "title": "mTLS → DN header"
    },
    {
     "file": "card8.png",
@@ -71,7 +71,7 @@
     "y": 1009,
     "w": 357.34375,
     "h": 312,
-    "title": "Bulk create / upsert"
+    "title": "CN=users-admin"
    },
    {
     "file": "card9.png",
@@ -79,7 +79,7 @@
     "y": 1402,
     "w": 357.328125,
     "h": 312,
-    "title": "Export artifact"
+    "title": "{\"data\":[],\"meta\":…}"
    },
    {
     "file": "card10.png",
@@ -87,7 +87,7 @@
     "y": 1402,
     "w": 357.328125,
     "h": 312,
-    "title": "Demo CRM stack"
+    "title": "AUTHZ_DENIED"
    }
   ]
  },

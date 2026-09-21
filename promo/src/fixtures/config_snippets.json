@@ -1,0 +1,6 @@
+{
+  "accounts": "# accounts.example.yaml — authz.mode: cert_dn\nauthz:\n  mode: cert_dn\n  client_dn_header: X-Client-Cert-DN\n\naccounts:\n  \"CN=users-admin,OU=tuz,O=Acme,C=RU\":\n    grants:\n      users:\n        operations: [list, get, create, update, patch, delete]\n        fields:\n          read: [id, email, full_name, status, created_at, deleted_at]\n          write: [email, full_name, status]\n",
+  "resource": "# config.yaml — resources.users\nresources:\n  users:\n    table: users\n    soft_delete:\n      enabled: true\n      field: deleted_at\n    operations:\n      list: true\n      get: true\n      create: true\n      update: true\n      patch: true\n      delete: true\n      upsert: true\n      batch_create: true\n    filterable: [email, full_name, status]\n    upsert_keys: [tenant_id, email]\n",
+  "title_accounts": "accounts.example.yaml",
+  "title_resource": "config.yaml · resources.users"
+}

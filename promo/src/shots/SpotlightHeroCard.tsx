@@ -11,7 +11,7 @@ import {AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame, Easing} fro
 import {PageCam2D, CamKey2D} from '../lib/PageCam2D';
 import layout from '../lib/live-layout.json';
 
-export const SPOTLIGHT_HERO_CARD_DURATION = 139; // 82–220f，落在 shot 内 offset 0
+export const SPOTLIGHT_HERO_CARD_DURATION = 160; // motion ~139f + ~0.7s hold breath
 
 const SERIF = '"IBM Plex Sans", "Segoe UI", sans-serif';
 const INK = '#0f172a';
@@ -37,6 +37,7 @@ const CAM_KEYS: CamKey2D[] = [
   { frame: 32, cx: 960, cy: 540, zoom: 0.78, rotX: 0, rotY: 0, rotZ: 0, persp: 1200 },
   { frame: 48, cx: MCX - 30, cy: MCY, zoom: 2.6, rotX: 8, rotY: 34, rotZ: 2, persp: 1200 },
   { frame: 138, cx: MCX - 30, cy: MCY, zoom: 2.6, rotX: 8, rotY: 34, rotZ: 2, persp: 1200 },
+  { frame: 159, cx: MCX - 30, cy: MCY, zoom: 2.6, rotX: 8, rotY: 34, rotZ: 2, persp: 1200 },
 ];
 const PUSH_EASE = Easing.bezier(0.35, 0, 0.2, 1);
 const POP_EASE = Easing.bezier(0.2, 1.25, 0.3, 1);
@@ -259,13 +260,13 @@ export const SpotlightHeroCard: React.FC = () => {
                 />
                 <div
                   style={{
-                    position: 'absolute', left: 556, top: 668, width: 230,
+                    position: 'absolute', left: 536, top: 658, width: 260,
                     transform: `translateZ(${noteZ}px) translateY(${(1 - noteIn) * 26}px)`,
                     opacity: noteVis, filter: `blur(${(1 - noteIn) * 4}px)`,
                   }}
                 >
-                  <div style={{fontFamily: SERIF, fontSize: 34, fontWeight: 700, color: INK, lineHeight: 1.16, letterSpacing: '-0.012em'}}>
-                    One YAML,
+                  <div style={{fontFamily: SERIF, fontSize: 30, fontWeight: 700, color: INK, lineHeight: 1.16, letterSpacing: '-0.012em'}}>
+                    DN — это
                   </div>
                   <div style={{position: 'relative', display: 'inline-block'}}>
                     <div
@@ -275,8 +276,8 @@ export const SpotlightHeroCard: React.FC = () => {
                         background: '#99f6e4', borderRadius: 4,
                       }}
                     />
-                    <div style={{position: 'relative', fontFamily: SERIF, fontStyle: 'italic', fontSize: 34, fontWeight: 700, color: INK, lineHeight: 1.16, letterSpacing: '-0.012em'}}>
-                      one gateway.
+                    <div style={{position: 'relative', fontFamily: SERIF, fontStyle: 'italic', fontSize: 30, fontWeight: 700, color: INK, lineHeight: 1.16, letterSpacing: '-0.012em'}}>
+                      грант ТУЗ.
                     </div>
                   </div>
                 </div>

@@ -1,0 +1,28 @@
+{
+  "allowed_orders": {
+    "status": 200,
+    "body": {
+      "data": [],
+      "meta": {
+        "total": 0,
+        "limit": 20,
+        "offset": 0
+      }
+    },
+    "curl": "curl -s http://localhost:8000/api/v1/orders -H \"X-Client-Cert-DN: CN=orders-reader,OU=tuz,O=Acme,C=RU\""
+  },
+  "denied_users": {
+    "status": 403,
+    "body": {
+      "detail": "authorization denied",
+      "code": "AUTHZ_DENIED"
+    }
+  },
+  "missing_dn": {
+    "status": 401,
+    "body": {
+      "detail": "missing or unknown client certificate DN",
+      "code": "UNAUTHORIZED"
+    }
+  }
+}

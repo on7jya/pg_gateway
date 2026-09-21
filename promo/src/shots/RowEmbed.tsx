@@ -10,7 +10,7 @@ import {interpolate, staticFile, useCurrentFrame, Easing} from 'remotion';
 import {PageCam2D, CamKey2D} from '../lib/PageCam2D';
 import layout from '../lib/live-layout.json';
 
-export const ROW_EMBED_DURATION = 68;
+export const ROW_EMBED_DURATION = 100; // embed ~68f + ~1s hold
 
 const DETAIL_H = layout.detail.pageH;
 const rows = layout.detail.rows;
@@ -18,6 +18,7 @@ const rows = layout.detail.rows;
 const DETAIL_CAM: CamKey2D[] = [
   { frame: 0, cx: 960, cy: 300, zoom: 1.1 },
   { frame: 68, cx: 960, cy: 760, zoom: 1.0 },
+  { frame: 99, cx: 960, cy: 760, zoom: 1.0 },
 ];
 
 const FLY_EASE = Easing.bezier(0.3, 0, 0.25, 1);

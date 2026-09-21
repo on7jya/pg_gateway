@@ -14,7 +14,7 @@ import {Img, interpolate, staticFile, useCurrentFrame, Easing} from 'remotion';
 import {PageCam2D, CamKey2D} from '../lib/PageCam2D';
 import layout from '../lib/live-layout.json';
 
-export const DECK_DEAL_FLYIN_DURATION = 113;
+export const DECK_DEAL_FLYIN_DURATION = 130; // deal 0–113 + ~0.55s rest hold
 
 const cards = layout.projects.cards;
 const PAGE_H = layout.projects.pageH;
@@ -79,6 +79,7 @@ const CAM_KEYS: CamKey2D[] = [
   { frame: 82, cx: 950, cy: 1900, zoom: 0.78, rotX: 14, rotY: 0, rotZ: 0, persp: 1300 },
   { frame: 98, cx: 960, cy: 3032, zoom: 0.72, rotX: 0, rotY: 0, rotZ: 0, persp: 1300 },
   { frame: 113, cx: 960, cy: 3032, zoom: 0.72, rotX: 0, rotY: 0, rotZ: 0, persp: 1300 },
+  { frame: 129, cx: 960, cy: 3032, zoom: 0.72, rotX: 0, rotY: 0, rotZ: 0, persp: 1300 },
 ];
 
 export const DeckDealFlyin: React.FC = () => {
