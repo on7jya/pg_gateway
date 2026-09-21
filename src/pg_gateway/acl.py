@@ -6,17 +6,25 @@ from pg_gateway.errors import ForbiddenError
 
 
 class ACLChecker:
-    """Role-based ACL from resource config."""
+    """ACL from resource role config or technical-account grants."""
 
-    def __init__(self, resource_name: str, config: ResourceConfig) -> None:
+    def __init__(
+        self,
+        resource_name: str,
+        config: ResourceConfig,
+        *,
+        account_grant: RoleAccess | None = None,
+        account_mode: bool = False,
+    ) -> None:
         self.resource_name = resource_name
         self.config = config
+        self.account_grant = account_grant
+        self.account_mode = account_mode
 
     def _matching_roles(self, ctx: RequestContext) -> list[tuple[str, RoleAccess]]:
         return [(name, role) for name, role in self.config.roles.items() if name in ctx.roles]
 
-    def require_operation(self, ctx: RequestContext, operation: str) -> None:
-        # Map API ops to OperationsConfig flags
+    def _operation_enabled(self, operation: str) -> None:
         ops = self.config.operations
         flag_map = {
             "list": ops.list,
@@ -34,6 +42,23 @@ class ACLChecker:
             raise ForbiddenError(
                 f"operation '{operation}' disabled for resource '{self.resource_name}'",
                 code="OPERATION_DISABLED",
+            )
+
+    def require_operation(self, ctx: RequestContext, operation: str) -> None:
+        self._operation_enabled(operation)
+
+        if self.account_mode:
+            if self.account_grant is None:
+                raise ForbiddenError(
+                    f"account has no grant for resource '{self.resource_name}'",
+                    code="GRANT_DENIED",
+                )
+            grant = self.account_grant
+            if grant.operations is None or operation in grant.operations:
+                return
+            raise ForbiddenError(
+                f"operation '{operation}' not allowed for account grant on '{self.resource_name}'",
+                code="OPERATION_DENIED",
             )
 
         matches = self._matching_roles(ctx)
@@ -57,6 +82,14 @@ class ACLChecker:
 
     def readable_fields(self, ctx: RequestContext) -> set[str]:
         base = {n for n, f in self.config.fields.items() if f.read}
+        if self.account_mode:
+            if self.account_grant is None:
+                return set()
+            grant = self.account_grant
+            if grant.fields is None or grant.fields.read is None:
+                return base
+            return set(grant.fields.read) & base
+
         matches = self._matching_roles(ctx)
         if not self.config.roles or not matches:
             return base
@@ -74,6 +107,14 @@ class ACLChecker:
             for n, f in self.config.fields.items()
             if f.write and not f.primary_key and not f.auto
         }
+        if self.account_mode:
+            if self.account_grant is None:
+                return set()
+            grant = self.account_grant
+            if grant.fields is None or grant.fields.write is None:
+                return base
+            return set(grant.fields.write) & base
+
         matches = self._matching_roles(ctx)
         if not self.config.roles or not matches:
             return base

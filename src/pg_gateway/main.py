@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
-from pg_gateway.authz import HeaderStubAuthz
+from pg_gateway.authz import CertDnAuthz, HeaderStubAuthz
 from pg_gateway.config import AppConfig, Settings, load_config
 from pg_gateway.db import Database
 from pg_gateway.errors import GatewayError, gateway_exception_handler, validation_exception_handler
@@ -35,6 +35,19 @@ def _known_roles(config: AppConfig) -> frozenset[str]:
     return frozenset(roles)
 
 
+def _known_accounts(config: AppConfig) -> frozenset[str]:
+    return frozenset(config.accounts.keys())
+
+
+def _resolve_config_path(path: str | Path) -> Path:
+    config_path = Path(path)
+    if not config_path.is_absolute() and not config_path.exists():
+        alt = Path(__file__).resolve().parents[2] / path
+        if alt.exists():
+            return alt
+    return config_path
+
+
 def create_app(
     config: AppConfig | None = None,
     settings: Settings | None = None,
@@ -43,18 +56,18 @@ def create_app(
 ) -> FastAPI:
     settings = settings or Settings.from_env()
     if config is None:
-        config_path = Path(settings.config_path)
-        if not config_path.is_absolute():
-            # resolve relative to CWD first, then project root heuristics
-            if not config_path.exists():
-                alt = Path(__file__).resolve().parents[2] / settings.config_path
-                if alt.exists():
-                    config_path = alt
-        config = load_config(config_path)
+        config_path = _resolve_config_path(settings.config_path)
+        accounts_path = None
+        if settings.accounts_config_path:
+            accounts_path = _resolve_config_path(settings.accounts_config_path)
+        config = load_config(config_path, accounts_path=accounts_path)
 
     trust_token = _require_trust_token(config, settings)
     db = Database(settings.database_url, statement_timeout_ms=config.gateway.query_timeout_ms)
-    authz = HeaderStubAuthz(config)
+    if config.authz.mode == "cert_dn":
+        authz = CertDnAuthz(config)
+    else:
+        authz = HeaderStubAuthz(config)
     service = ResourceService(config, db, authz)
 
     @asynccontextmanager
@@ -88,6 +101,7 @@ def create_app(
         authz=config.authz,
         trust_token=trust_token,
         known_roles=_known_roles(config),
+        known_accounts=_known_accounts(config),
     )
 
     @app.get("/health", tags=["system"], summary="Проверка живости")
@@ -126,24 +140,39 @@ def create_app(
         schema["openapi"] = "3.1.0"
         components = schema.setdefault("components", {})
         schemes = components.setdefault("securitySchemes", {})
-        schemes["GatewayToken"] = {
-            "type": "apiKey",
-            "in": "header",
-            "name": config.authz.trust_header,
-            "description": "Общий секрет (GATEWAY_TRUST_TOKEN). Обязателен для всех API-маршрутов.",
-        }
-        schemes["TenantId"] = {
-            "type": "apiKey",
-            "in": "header",
-            "name": config.authz.tenant_header,
-        }
-        schemes["Roles"] = {
-            "type": "apiKey",
-            "in": "header",
-            "name": config.authz.roles_header,
-            "description": "Роли через запятую из реестра ACL ресурса.",
-        }
-        schema["security"] = [{"GatewayToken": [], "TenantId": [], "Roles": []}]
+        if config.authz.mode == "cert_dn":
+            schemes["ClientCertDN"] = {
+                "type": "apiKey",
+                "in": "header",
+                "name": config.authz.client_dn_header,
+                "description": (
+                    "Subject DN клиентского сертификата (mTLS на ingress). "
+                    "X-Roles / X-Tenant-Id игнорируются. Права — из accounts.grants."
+                ),
+            }
+            schema["security"] = [{"ClientCertDN": []}]
+        else:
+            schemes["GatewayToken"] = {
+                "type": "apiKey",
+                "in": "header",
+                "name": config.authz.trust_header,
+                "description": (
+                    "Общий секрет (GATEWAY_TRUST_TOKEN). "
+                    "Обязателен для всех API-маршрутов."
+                ),
+            }
+            schemes["TenantId"] = {
+                "type": "apiKey",
+                "in": "header",
+                "name": config.authz.tenant_header,
+            }
+            schemes["Roles"] = {
+                "type": "apiKey",
+                "in": "header",
+                "name": config.authz.roles_header,
+                "description": "Роли через запятую из реестра ACL ресурса.",
+            }
+            schema["security"] = [{"GatewayToken": [], "TenantId": [], "Roles": []}]
         app.openapi_schema = schema
         return app.openapi_schema
 

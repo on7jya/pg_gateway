@@ -5,8 +5,9 @@ context: |
   Конфигурируемый API-шлюз для PostgreSQL.
   Маршруты и схемы генерируются из YAML-конфига (config/config.yaml).
   Без ORM SQLAlchemy — asyncpg с параметризованным SQL; идентификаторы только из whitelist конфига.
-  Auth v1: обязательный X-Gateway-Token (GATEWAY_TRUST_TOKEN) + заголовки X-Tenant-Id и X-Roles.
-  AuthzPort вызывается на каждой операции; header_stub безопасен по умолчанию. Postgres RLS по tenant_id.
+  Auth header_stub: обязательный X-Gateway-Token (GATEWAY_TRUST_TOKEN) + заголовки X-Tenant-Id и X-Roles.
+  Auth cert_dn (ТУЗ): mTLS на ingress; идентичность — X-Client-Cert-DN; права — accounts.<DN>.grants; без tenant_id у аккаунта; X-Roles/X-Tenant-Id игнорируются.
+  AuthzPort вызывается на каждой операции; header_stub и cert_dn безопасны по умолчанию. Postgres RLS по tenant_id в демо header_stub.
   OpenAPI — артефакт экспорта, а не источник истины.
 
 rules:
@@ -16,9 +17,11 @@ rules:
     - Держать OpenAPI как экспорт работающего приложения FastAPI (OpenAPI 3.1)
   access-control:
     - Требовать GATEWAY_TRUST_TOKEN / X-Gateway-Token в режиме header_stub
+    - В режиме cert_dn требовать известный X-Client-Cert-DN; не требовать trust-токен; игнорировать X-Roles/X-Tenant-Id
+    - Права cert_dn брать только из accounts.grants (без tenant_id у account)
     - Вызывать AuthzPort.allow на каждой операции ресурса до ACL и данных
-    - Применять флаги CRUD сущностей, права чтения/записи полей и ACL ролей из конфига
-    - Применять row_filters из контекста запроса (tenant_id обязателен, если настроен)
+    - Применять флаги CRUD сущностей, права чтения/записи полей и ACL ролей/grants из конфига
+    - Применять row_filters из контекста запроса (tenant_id обязателен, если настроен required:true)
     - Устанавливать app.tenant_id для Postgres RLS; при отсутствии обязательного tenant-контекста возвращать 403
   query-engine:
     - Идентификаторы ДОЛЖНЫ браться из whitelist конфига; никогда не склеивать пользовательский ввод как SQL-идентификаторы

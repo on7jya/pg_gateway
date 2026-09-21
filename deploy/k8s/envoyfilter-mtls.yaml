@@ -1,0 +1,44 @@
+# EnvoyFilter: mTLS peer certificate verify only.
+# DN header (X-Client-Cert-DN) is pass-through — do NOT strip or rewrite.
+# Requests without a peer certificate are rejected with 401 at the edge.
+#
+# Adjust workloadSelector / namespace to match your Istio ingress gateway.
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: pg-gateway-mtls-verify
+  namespace: istio-system
+spec:
+  workloadSelector:
+    labels:
+      istio: ingressgateway
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: GATEWAY
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+              subFilter:
+                name: envoy.filters.http.router
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.lua
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+            inlineCode: |
+              function envoy_on_request(handle)
+                local ssl = handle:streamInfo():downstreamSslConnection()
+                if ssl == nil or not ssl:peerCertificatePresented() then
+                  handle:respond(
+                    {[":status"] = "401", ["content-type"] = "application/json"},
+                    '{"detail":"client certificate required","code":"UNAUTHORIZED"}'
+                  )
+                  return
+                end
+                -- Intentionally do not read, strip, or rewrite X-Client-Cert-DN.
+                -- Client (or upstream mTLS terminator) supplies the DN header;
+                -- gateway trusts identity only after this peer-cert check.
+              end

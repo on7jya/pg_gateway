@@ -335,7 +335,10 @@ class QueryBuilder:
         agg = self.config.aggregate
         fn = function.lower()
         if fn not in {f.lower() for f in agg.allowed_functions}:
-            raise ValidationAppError(f"aggregate function not allowed: {function}", code="AGG_DENIED")
+            raise ValidationAppError(
+                f"aggregate function not allowed: {function}",
+                code="AGG_DENIED",
+            )
 
         args: list[Any] = []
         clauses: list[str] = []
@@ -383,7 +386,8 @@ class QueryBuilder:
         qb.apply_soft_delete(clauses, include_deleted=include_deleted)
         if not local_values:
             # empty IN — return no rows
-            sql = f"SELECT {', '.join(qb._col(c) for c in related_config.fields)} FROM {qb.table} WHERE FALSE"
+            cols = ", ".join(qb._col(c) for c in related_config.fields)
+            sql = f"SELECT {cols} FROM {qb.table} WHERE FALSE"
             return BoundQuery(sql, [])
         placeholders = [qb._next_arg(args, v) for v in local_values]
         clauses.append(f"{qb._col(foreign_col)} IN ({', '.join(placeholders)})")
