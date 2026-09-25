@@ -17,7 +17,12 @@ def export_openapi(output: Path | None = None) -> Path:
     config_path = Path(settings.config_path)
     if not config_path.exists():
         config_path = Path(__file__).resolve().parents[2] / "config" / "config.yaml"
-    config = load_config(config_path)
+    accounts_path = None
+    if settings.accounts_config_path:
+        accounts_path = Path(settings.accounts_config_path)
+        if not accounts_path.exists():
+            accounts_path = Path(__file__).resolve().parents[2] / settings.accounts_config_path
+    config = load_config(config_path, accounts_path=accounts_path)
     # Do not connect to DB for schema export
     app = create_app(config=config, settings=settings, connect_db=False)
     schema = app.openapi()

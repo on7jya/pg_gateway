@@ -5,13 +5,13 @@ from httpx import ASGITransport, AsyncClient
 
 from pg_gateway.config import Settings, load_config
 from pg_gateway.main import create_app
-from tests.conftest import CONFIG_PATH, ROOT
+from tests.conftest import ACCOUNTS_PATH, ADMIN_DN, CONFIG_PATH
 
 pytestmark = pytest.mark.integration
 
-ACCOUNTS_PATH = ROOT / "config" / "accounts.example.yaml"
 ORDERS_READER_DN = "CN=orders-reader,OU=tuz,O=Acme,C=RU"
 USERS_ADMIN_DN = "CN=users-admin,OU=tuz,O=Acme,C=RU"
+TENANT_B_READER_DN = "CN=tenant-b-reader,OU=tuz,O=Acme,C=RU"
 
 
 @pytest.fixture
@@ -19,15 +19,18 @@ def cert_dn_config():
     return load_config(CONFIG_PATH, accounts_path=ACCOUNTS_PATH)
 
 
-@pytest.mark.asyncio
-async def test_cert_dn_orders_reader_list_allowed(cert_dn_config, database_url):
-    """Known DN with grant passes auth; RLS may still return empty without tenant."""
-    settings = Settings(
+def _settings(database_url: str) -> Settings:
+    return Settings(
         config_path=str(CONFIG_PATH),
         database_url=database_url,
-        gateway_trust_token="",
+        accounts_config_path=str(ACCOUNTS_PATH),
     )
-    app = create_app(config=cert_dn_config, settings=settings, connect_db=True)
+
+
+@pytest.mark.asyncio
+async def test_cert_dn_orders_reader_list_allowed(cert_dn_config, database_url):
+    """Known DN with grant passes auth; tenant comes from account (RLS active)."""
+    app = create_app(config=cert_dn_config, settings=_settings(database_url), connect_db=True)
     async with app.router.lifespan_context(app):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -43,12 +46,7 @@ async def test_cert_dn_orders_reader_list_allowed(cert_dn_config, database_url):
 
 @pytest.mark.asyncio
 async def test_cert_dn_orders_reader_users_denied(cert_dn_config, database_url):
-    settings = Settings(
-        config_path=str(CONFIG_PATH),
-        database_url=database_url,
-        gateway_trust_token="",
-    )
-    app = create_app(config=cert_dn_config, settings=settings, connect_db=True)
+    app = create_app(config=cert_dn_config, settings=_settings(database_url), connect_db=True)
     async with app.router.lifespan_context(app):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -66,12 +64,7 @@ async def test_cert_dn_orders_reader_users_denied(cert_dn_config, database_url):
 
 @pytest.mark.asyncio
 async def test_cert_dn_users_admin_list_users(cert_dn_config, database_url):
-    settings = Settings(
-        config_path=str(CONFIG_PATH),
-        database_url=database_url,
-        gateway_trust_token="",
-    )
-    app = create_app(config=cert_dn_config, settings=settings, connect_db=True)
+    app = create_app(config=cert_dn_config, settings=_settings(database_url), connect_db=True)
     async with app.router.lifespan_context(app):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -81,3 +74,29 @@ async def test_cert_dn_users_admin_list_users(cert_dn_config, database_url):
             )
             assert r.status_code == 200
             assert "data" in r.json()
+
+
+@pytest.mark.asyncio
+async def test_tenant_isolation_between_accounts(cert_dn_config, database_url):
+    """Account on tenant A sees A's rows; account on tenant B sees B's rows."""
+    app = create_app(config=cert_dn_config, settings=_settings(database_url), connect_db=True)
+    async with app.router.lifespan_context(app):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            r_a = await client.get(
+                "/api/v1/users",
+                headers={"X-Client-Cert-DN": ADMIN_DN},
+            )
+            assert r_a.status_code == 200
+            emails_a = {u["email"] for u in r_a.json()["data"]}
+            assert "alice@acme.test" in emails_a
+            assert "carol@other.test" not in emails_a
+
+            r_b = await client.get(
+                "/api/v1/users",
+                headers={"X-Client-Cert-DN": TENANT_B_READER_DN},
+            )
+            assert r_b.status_code == 200
+            emails_b = {u["email"] for u in r_b.json()["data"]}
+            assert "carol@other.test" in emails_b
+            assert "alice@acme.test" not in emails_b

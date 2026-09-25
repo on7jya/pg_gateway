@@ -5,27 +5,9 @@ import uuid
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import (
-    ORDER_ALICE,
-    ORDER_CAROL,
-    TENANT_A,
-    TENANT_B,
-    USER_ALICE,
-    USER_CAROL,
-    gateway_headers,
-)
+from tests.conftest import ORDER_ALICE, USER_ALICE
 
 pytestmark = pytest.mark.integration
-
-
-@pytest.mark.asyncio
-async def test_wrong_trust_token_401(client: AsyncClient):
-    r = await client.get(
-        "/api/v1/users",
-        headers=gateway_headers(token="nope"),
-    )
-    assert r.status_code == 401
-    assert r.json()["code"] == "UNAUTHORIZED"
 
 
 @pytest.mark.asyncio
@@ -128,7 +110,7 @@ async def test_include_deleted_list_admin_vs_reader(
     )
     assert uid in {u["id"] for u in r.json()["data"]}
 
-    # Current behavior: readers may also use include_deleted (no role gate on the flag).
+    # Readers may also use include_deleted; deleted_at is filtered by field ACL.
     r = await client.get(
         f"/api/v1/users?include_deleted=true&filter[email][eq]={email}",
         headers=reader_headers,
@@ -136,75 +118,6 @@ async def test_include_deleted_list_admin_vs_reader(
     assert r.status_code == 200
     match = next(u for u in r.json()["data"] if u["id"] == uid)
     assert "deleted_at" not in match
-
-
-@pytest.mark.asyncio
-async def test_tenant_a_cannot_get_tenant_b_user(
-    client: AsyncClient, admin_headers: dict
-):
-    r = await client.get(f"/api/v1/users/{USER_CAROL}", headers=admin_headers)
-    assert r.status_code == 404
-    assert r.json()["code"] == "NOT_FOUND"
-
-
-@pytest.mark.asyncio
-async def test_tenant_a_cannot_get_tenant_b_order(
-    client: AsyncClient, admin_headers: dict
-):
-    r = await client.get(f"/api/v1/orders/{ORDER_CAROL}", headers=admin_headers)
-    assert r.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_create_stamps_tenant_from_context(
-    client: AsyncClient, admin_headers: dict
-):
-    email = f"stamp-{uuid.uuid4().hex[:8]}@acme.test"
-    r = await client.post(
-        "/api/v1/users",
-        headers=admin_headers,
-        # tenant_id is not writable; schema strips it; service stamps from context.
-        json={
-            "email": email,
-            "full_name": "Stamp Me",
-            "status": "active",
-            "tenant_id": TENANT_B,
-        },
-    )
-    assert r.status_code == 201, r.text
-    assert r.json()["tenant_id"] == TENANT_A
-    assert r.json()["email"] == email
-
-
-@pytest.mark.asyncio
-async def test_cross_tenant_fk_current_behavior(
-    client: AsyncClient, admin_headers: dict
-):
-    """Document current behavior for cross-tenant user_id on orders.
-
-    Postgres FK checks typically bypass RLS on the referenced table, so an order
-    in tenant A can reference tenant B's user id. Tenant isolation still stamps
-    order.tenant_id from context. Known High if product intent is stricter.
-    """
-    order_number = f"ORD-XT-{uuid.uuid4().hex[:6]}"
-    r = await client.post(
-        "/api/v1/orders",
-        headers=admin_headers,
-        json={
-            "user_id": USER_CAROL,
-            "order_number": order_number,
-            "status": "pending",
-            "total_amount": "1.00",
-        },
-    )
-    # Assert current reality (may be 201 with orphan FK or an error).
-    assert r.status_code in (201, 400, 409, 500), r.text
-    if r.status_code == 201:
-        body = r.json()
-        assert body["tenant_id"] == TENANT_A
-        assert body["user_id"] == USER_CAROL
-        # cleanup
-        await client.delete(f"/api/v1/orders/{body['id']}", headers=admin_headers)
 
 
 @pytest.mark.asyncio
@@ -361,7 +274,7 @@ async def test_put_requires_writable_fields_patch_partial(
 
 @pytest.mark.asyncio
 async def test_patch_null_skips_field(client: AsyncClient, admin_headers: dict):
-    """Current behavior: PATCH null values are dropped so fields stay unchanged."""
+    """PATCH null values are dropped so fields stay unchanged."""
     email = f"nullpatch-{uuid.uuid4().hex[:8]}@acme.test"
     r = await client.post(
         "/api/v1/users",

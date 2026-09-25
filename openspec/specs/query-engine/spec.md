@@ -68,3 +68,13 @@ CUD, batch, upsert и bulk-delete SHALL выполняться в транзак
 
 - **WHEN** create нарушает unique constraint
 - **THEN** ответ — 409 с кодом `UNIQUE_VIOLATION`
+
+### Requirement: Однородная форма batch/upsert
+
+Элементы `batch` и `upsert` MUST иметь одинаковый набор полей. Гетерогенные элементы
+SHALL отклоняться (иначе отсутствующие NOT NULL колонки вставлялись бы как `NULL`).
+
+#### Scenario: Разные наборы полей
+
+- **WHEN** элементы `batch`/`upsert` имеют разные наборы полей
+- **THEN** ответ — 400 с кодом `BATCH_SHAPE_MISMATCH` / `UPSERT_SHAPE_MISMATCH`

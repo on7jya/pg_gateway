@@ -5,27 +5,21 @@ import uuid
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import TENANT_A, USER_ALICE
+from tests.conftest import USER_ALICE
 
 pytestmark = pytest.mark.integration
 
 
 @pytest.mark.asyncio
-async def test_ready(client: AsyncClient):
-    r = await client.get(
-        "/ready",
-        headers={"X-Gateway-Token": "demo-trust-token"},
-    )
+async def test_ready(client: AsyncClient, admin_headers: dict):
+    r = await client.get("/ready", headers=admin_headers)
     assert r.status_code == 200
     assert r.json()["status"] == "ready"
 
 
 @pytest.mark.asyncio
-async def test_missing_trust_token_401(client: AsyncClient):
-    r = await client.get(
-        "/api/v1/users",
-        headers={"X-Tenant-Id": TENANT_A, "X-Roles": "admin"},
-    )
+async def test_missing_dn_401(client: AsyncClient):
+    r = await client.get("/api/v1/users")
     assert r.status_code == 401
     assert r.json()["code"] == "UNAUTHORIZED"
 
@@ -39,34 +33,6 @@ async def test_list_users(client: AsyncClient, admin_headers: dict):
     assert body["meta"]["total"] >= 2
     emails = {u["email"] for u in body["data"]}
     assert "alice@acme.test" in emails
-    # tenant isolation: no carol
-    assert "carol@other.test" not in emails
-
-
-@pytest.mark.asyncio
-async def test_missing_tenant_403(client: AsyncClient):
-    r = await client.get(
-        "/api/v1/users",
-        headers={"X-Gateway-Token": "demo-trust-token", "X-Roles": "admin"},
-    )
-    assert r.status_code == 403
-    body = r.json()
-    assert "detail" in body and "code" in body
-    assert body["code"] == "MISSING_TENANT"
-
-
-@pytest.mark.asyncio
-async def test_unknown_roles_403(client: AsyncClient):
-    r = await client.get(
-        "/api/v1/users",
-        headers={
-            "X-Gateway-Token": "demo-trust-token",
-            "X-Tenant-Id": TENANT_A,
-            "X-Roles": "not-a-role",
-        },
-    )
-    assert r.status_code == 403
-    assert r.json()["code"] == "AUTHZ_DENIED"
 
 
 @pytest.mark.asyncio
@@ -247,15 +213,6 @@ async def test_bulk_delete(client: AsyncClient, admin_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_tenant_b_isolation(client: AsyncClient, tenant_b_headers: dict):
-    r = await client.get("/api/v1/users", headers=tenant_b_headers)
-    assert r.status_code == 200
-    emails = {u["email"] for u in r.json()["data"]}
-    assert "carol@other.test" in emails
-    assert "alice@acme.test" not in emails
-
-
-@pytest.mark.asyncio
 async def test_orders_list_and_items_include(client: AsyncClient, admin_headers: dict):
     r = await client.get("/api/v1/orders?include=items", headers=admin_headers)
     assert r.status_code == 200
@@ -265,7 +222,7 @@ async def test_orders_list_and_items_include(client: AsyncClient, admin_headers:
 
 
 @pytest.mark.asyncio
-async def test_rls_blocks_cross_tenant_even_with_app_filters(app):
+async def test_rls_blocks_cross_tenant(app):
     """RLS + set_config: gateway role only sees rows for app.tenant_id."""
     import asyncpg
 

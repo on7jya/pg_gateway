@@ -1,44 +1,83 @@
-# Overlay для режима ТУЗ (cert_dn): mTLS DN + grants.
+# Overlay технических учётных записей (ТУЗ): mTLS DN + grants + tenant.
 # Использование:
 #   export CONFIG_PATH=config/config.yaml
 #   export ACCOUNTS_CONFIG_PATH=config/accounts.example.yaml
-# GATEWAY_TRUST_TOKEN для cert_dn не требуется.
 #
 # Клиент передаёт только X-Client-Cert-DN (после mTLS на ingress).
-# X-Roles / X-Tenant-Id игнорируются. У accounts нет tenant_id.
-
-authz:
-  mode: cert_dn
-  client_dn_header: X-Client-Cert-DN
-
-# Без обязательного tenant — иначе список упрётся в MISSING_TENANT.
-# Postgres RLS при пустом app.tenant_id всё равно скрывает строки демо-таблиц;
-# для чтения данных в cert_dn-демо нужна отдельная политика/сид без tenant.
-resources:
-  users:
-    row_filters: []
-  orders:
-    row_filters: []
-  order_items:
-    row_filters: []
+# Каждая ТУЗ привязана ровно к одному tenant_id (значение берётся из аккаунта,
+# клиент его не передаёт и не может подделать). tenant изолирует данные между ТУЗ.
+#
+# Tenant A: 11111111-1111-1111-1111-111111111111 (Acme)
+# Tenant B: 22222222-2222-2222-2222-222222222222 (Other)
 
 accounts:
   "CN=orders-reader,OU=tuz,O=Acme,C=RU":
+    tenant_id: 11111111-1111-1111-1111-111111111111
     grants:
       orders:
         operations: [list, get, aggregate]
         fields:
-          read: [id, user_id, order_number, status, total_amount, created_at]
+          read: [id, tenant_id, user_id, order_number, status, total_amount, created_at]
           write: []
       order_items:
         operations: [list, get]
         fields:
-          read: [id, order_id, sku, quantity, unit_price, created_at]
+          read: [id, tenant_id, order_id, sku, quantity, unit_price, created_at]
           write: []
   "CN=users-admin,OU=tuz,O=Acme,C=RU":
+    tenant_id: 11111111-1111-1111-1111-111111111111
     grants:
       users:
         operations: [list, get, create, update, patch, delete]
         fields:
-          read: [id, email, full_name, status, created_at, deleted_at]
+          read: [id, tenant_id, email, full_name, status, created_at, deleted_at]
           write: [email, full_name, status]
+  "CN=admin,OU=tuz,O=Acme,C=RU":
+    tenant_id: 11111111-1111-1111-1111-111111111111
+    grants:
+      users:
+        operations: [list, get, create, update, patch, delete, batch_create, bulk_delete, upsert, aggregate]
+        fields:
+          read: [id, tenant_id, email, full_name, status, created_at, deleted_at]
+          write: [email, full_name, status]
+      orders:
+        operations: [list, get, create, update, patch, delete, batch_create, bulk_delete, upsert, aggregate]
+        fields:
+          read: [id, tenant_id, user_id, order_number, status, total_amount, created_at, deleted_at]
+          write: [user_id, order_number, status, total_amount]
+      order_items:
+        operations: [list, get, create, update, patch, delete, batch_create, bulk_delete, upsert, aggregate]
+        fields:
+          read: [id, tenant_id, order_id, sku, quantity, unit_price, created_at]
+          write: [order_id, sku, quantity, unit_price]
+  "CN=reader,OU=tuz,O=Acme,C=RU":
+    tenant_id: 11111111-1111-1111-1111-111111111111
+    grants:
+      users:
+        operations: [list, get, aggregate]
+        fields:
+          read: [id, tenant_id, email, full_name, status, created_at]
+          write: []
+      orders:
+        operations: [list, get, aggregate]
+        fields:
+          read: [id, tenant_id, user_id, order_number, status, total_amount, created_at]
+          write: []
+      order_items:
+        operations: [list, get, aggregate]
+        fields:
+          read: [id, tenant_id, order_id, sku, quantity, unit_price, created_at]
+          write: []
+  "CN=tenant-b-reader,OU=tuz,O=Acme,C=RU":
+    tenant_id: 22222222-2222-2222-2222-222222222222
+    grants:
+      users:
+        operations: [list, get]
+        fields:
+          read: [id, tenant_id, email, full_name, status, created_at]
+          write: []
+      orders:
+        operations: [list, get]
+        fields:
+          read: [id, tenant_id, user_id, order_number, status, total_amount, created_at]
+          write: []

@@ -6,7 +6,17 @@ from httpx import ASGITransport, AsyncClient
 from pg_gateway.config import Settings, load_config
 from pg_gateway.main import create_app
 from pg_gateway.schemas import create_create_model, create_response_model
-from tests.conftest import CONFIG_PATH
+from tests.conftest import ACCOUNTS_PATH, CONFIG_PATH
+
+
+def _cert_dn_config():
+    return load_config(CONFIG_PATH, accounts_path=ACCOUNTS_PATH)
+
+
+def _settings(**kw):
+    base = dict(config_path=str(CONFIG_PATH), database_url="postgresql://x")
+    base.update(kw)
+    return Settings(**base)
 
 
 def test_dynamic_create_model_fields():
@@ -26,12 +36,8 @@ def test_dynamic_response_model_includes_id():
 
 @pytest.mark.asyncio
 async def test_openapi_contains_resource_paths():
-    settings = Settings(
-        config_path=str(CONFIG_PATH),
-        database_url="postgresql://x",
-        gateway_trust_token="demo-trust-token",
-    )
-    app = create_app(config=load_config(CONFIG_PATH), settings=settings, connect_db=False)
+    settings = _settings(accounts_config_path=str(ACCOUNTS_PATH))
+    app = create_app(config=_cert_dn_config(), settings=settings, connect_db=False)
     schema = app.openapi()
     paths = schema["paths"]
     assert "/api/v1/users" in paths
@@ -43,17 +49,14 @@ async def test_openapi_contains_resource_paths():
     assert "/api/v1/orders" in paths
     assert "/health" in paths
     assert schema["openapi"].startswith("3.")
-    assert "GatewayToken" in schema["components"]["securitySchemes"]
+    assert "ClientCertDN" in schema["components"]["securitySchemes"]
+    assert "GatewayToken" not in schema["components"]["securitySchemes"]
 
 
 @pytest.mark.asyncio
 async def test_health_without_db():
-    settings = Settings(
-        config_path=str(CONFIG_PATH),
-        database_url="postgresql://x",
-        gateway_trust_token="demo-trust-token",
-    )
-    app = create_app(config=load_config(CONFIG_PATH), settings=settings, connect_db=False)
+    settings = _settings(accounts_config_path=str(ACCOUNTS_PATH))
+    app = create_app(config=_cert_dn_config(), settings=settings, connect_db=False)
     async with app.router.lifespan_context(app):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -62,13 +65,9 @@ async def test_health_without_db():
             assert r.json()["status"] == "ok"
 
 
-def test_header_stub_requires_trust_token():
-    settings = Settings(
-        config_path=str(CONFIG_PATH),
-        database_url="postgresql://x",
-        gateway_trust_token="",
-    )
-    with pytest.raises(RuntimeError, match="GATEWAY_TRUST_TOKEN"):
+def test_create_app_requires_accounts():
+    settings = _settings()
+    with pytest.raises(RuntimeError, match="account"):
         create_app(config=load_config(CONFIG_PATH), settings=settings, connect_db=False)
 
 
