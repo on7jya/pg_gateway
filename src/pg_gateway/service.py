@@ -35,18 +35,12 @@ class ResourceService:
             raise NotFoundError(f"unknown resource: {name}") from e
 
     def _acl(self, name: str, ctx: RequestContext | None = None) -> ACLChecker:
-        account_mode = bool(ctx and ctx.account_dn)
         account_grant = None
-        if account_mode and ctx is not None and ctx.account_dn:
+        if ctx is not None and ctx.account_dn:
             account = self.app_config.account(ctx.account_dn)
             if account is not None:
                 account_grant = account.grants.get(name)
-        return ACLChecker(
-            name,
-            self._resource(name),
-            account_grant=account_grant,
-            account_mode=account_mode,
-        )
+        return ACLChecker(name, self._resource(name), account_grant=account_grant)
 
     def _qb(self, name: str) -> QueryBuilder:
         return QueryBuilder(name, self._resource(name))
@@ -262,8 +256,10 @@ class ResourceService:
         columns = list(prepared[0].keys())
         for row in prepared:
             if set(row.keys()) != set(columns):
-                # union columns
-                columns = list(dict.fromkeys([*columns, *row.keys()]))
+                raise ValidationAppError(
+                    "batch items must have identical fields",
+                    code="BATCH_SHAPE_MISMATCH",
+                )
         qb = self._qb(name)
         q = qb.build_insert(columns, prepared)
         rows = await self._run(q.sql, q.args, many=True)
@@ -285,7 +281,13 @@ class ResourceService:
         for item in items:
             data = self._inject_row_context(ctx, config, item)
             prepared.append({k: v for k, v in data.items() if k in writable})
-        columns = list(dict.fromkeys(k for row in prepared for k in row))
+        columns = list(prepared[0].keys())
+        for row in prepared:
+            if set(row.keys()) != set(columns):
+                raise ValidationAppError(
+                    "upsert items must have identical fields",
+                    code="UPSERT_SHAPE_MISMATCH",
+                )
         update_cols = [c for c in columns if c not in config.upsert_keys and c != config.pk]
         qb = self._qb(name)
         q = qb.build_upsert(columns, prepared, config.upsert_keys, update_cols)

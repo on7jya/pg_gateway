@@ -46,18 +46,9 @@ class GatewayConfig(BaseModel):
 
 
 class AuthzConfig(BaseModel):
-    mode: str = "header_stub"
-    tenant_header: str = "X-Tenant-Id"
-    roles_header: str = "X-Roles"
-    trust_header: str = "X-Gateway-Token"
     client_dn_header: str = "X-Client-Cert-DN"
-
-    @field_validator("mode")
-    @classmethod
-    def validate_mode(cls, v: str) -> str:
-        if v not in ("header_stub", "cert_dn"):
-            raise ValueError(f"unsupported authz.mode: {v!r} (expected header_stub|cert_dn)")
-        return v
+    session_id_header: str = "X-Session-Id"
+    user_id_header: str = "X-User-Id"
 
 
 class SoftDeleteConfig(BaseModel):
@@ -105,9 +96,18 @@ class RoleAccess(BaseModel):
 
 
 class AccountConfig(BaseModel):
-    """Technical account (ТУЗ) identified by certificate Subject DN."""
+    """Technical account (ТУЗ) identified by certificate Subject DN, bound to one tenant."""
 
+    tenant_id: str
     grants: dict[str, RoleAccess] = Field(default_factory=dict)
+
+    @field_validator("tenant_id")
+    @classmethod
+    def tenant_non_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("tenant_id must be non-empty")
+        return v
 
 
 class RelationType(str, Enum):
@@ -136,7 +136,6 @@ class ResourceConfig(BaseModel):
     operations: OperationsConfig = Field(default_factory=OperationsConfig)
     row_filters: list[RowFilterConfig] = Field(default_factory=list)
     fields: dict[str, FieldConfig]
-    roles: dict[str, RoleAccess] = Field(default_factory=dict)
     relations: dict[str, RelationConfig] = Field(default_factory=dict)
     filterable: list[str] = Field(default_factory=list)
     sortable: list[str] = Field(default_factory=list)
@@ -173,10 +172,7 @@ class AppConfig(BaseModel):
         return {str(k).strip(): val for k, val in v.items()}
 
     @model_validator(mode="after")
-    def validate_accounts_for_mode(self) -> AppConfig:
-        if self.authz.mode == "cert_dn" and not self.accounts:
-            raise ValueError("accounts must be non-empty when authz.mode=cert_dn")
-
+    def validate_accounts(self) -> AppConfig:
         op_flags = (
             "list",
             "get",
@@ -241,7 +237,7 @@ class Settings(BaseModel):
     host: str = "0.0.0.0"
     port: int = 8000
     log_level: str = "info"
-    gateway_trust_token: str = ""
+    reload_interval: float = 2.0
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -257,5 +253,5 @@ class Settings(BaseModel):
             host=os.getenv("HOST", "0.0.0.0"),
             port=int(os.getenv("PORT", "8000")),
             log_level=os.getenv("LOG_LEVEL", "info"),
-            gateway_trust_token=os.getenv("GATEWAY_TRUST_TOKEN", ""),
+            reload_interval=float(os.getenv("RELOAD_INTERVAL", "2.0")),
         )

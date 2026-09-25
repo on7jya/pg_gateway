@@ -5,9 +5,9 @@ context: |
   Конфигурируемый API-шлюз для PostgreSQL.
   Маршруты и схемы генерируются из YAML-конфига (config/config.yaml).
   Без ORM SQLAlchemy — asyncpg с параметризованным SQL; идентификаторы только из whitelist конфига.
-  Auth header_stub: обязательный X-Gateway-Token (GATEWAY_TRUST_TOKEN) + заголовки X-Tenant-Id и X-Roles.
-  Auth cert_dn (ТУЗ): mTLS на ingress; идентичность — X-Client-Cert-DN; права — accounts.<DN>.grants; без tenant_id у аккаунта; X-Roles/X-Tenant-Id игнорируются.
-  AuthzPort вызывается на каждой операции; header_stub и cert_dn безопасны по умолчанию. Postgres RLS по tenant_id в демо header_stub.
+  Auth cert_dn (ТУЗ): mTLS на ingress; идентичность — X-Client-Cert-DN; права — accounts.<DN>.grants; tenant_id зашит в аккаунте (ТУЗ = ровно один tenant).
+  Опциональные корреляционные заголовки X-Session-Id / X-User-Id (не влияют на авторизацию).
+  AuthzPort вызывается на каждой операции; cert_dn безопасен по умолчанию. Postgres RLS по tenant_id на демо-таблицах.
   OpenAPI — артефакт экспорта, а не источник истины.
 
 rules:
@@ -16,11 +16,10 @@ rules:
     - Соблюдать утверждённый контракт путей под /api/v1/{resource}
     - Держать OpenAPI как экспорт работающего приложения FastAPI (OpenAPI 3.1)
   access-control:
-    - Требовать GATEWAY_TRUST_TOKEN / X-Gateway-Token в режиме header_stub
-    - В режиме cert_dn требовать известный X-Client-Cert-DN; не требовать trust-токен; игнорировать X-Roles/X-Tenant-Id
-    - Права cert_dn брать только из accounts.grants (без tenant_id у account)
+    - Требовать известный X-Client-Cert-DN (mTLS на ingress); без peer cert — 401
+    - Права брать только из accounts.grants; tenant_id — из аккаунта (не из заголовка)
     - Вызывать AuthzPort.allow на каждой операции ресурса до ACL и данных
-    - Применять флаги CRUD сущностей, права чтения/записи полей и ACL ролей/grants из конфига
+    - Применять флаги CRUD сущностей, права чтения/записи полей из accounts.grants
     - Применять row_filters из контекста запроса (tenant_id обязателен, если настроен required:true)
     - Устанавливать app.tenant_id для Postgres RLS; при отсутствии обязательного tenant-контекста возвращать 403
   query-engine:
@@ -30,3 +29,8 @@ rules:
   errors:
     - Форма тела ошибки всегда {detail, code}
     - Отображать: not found → 404, unique violation → 409, validation → 400, timeout → 504
+  versioning:
+    - Версионировать API через префикс пути (/api/v1)
+    - Следовать SemVer; ломающее изменение контракта → major
+    - Депрекация через changelog + период перед удалением
+    - Вести CHANGELOG.md и уведомлять потребителей о ломающих изменениях

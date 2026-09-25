@@ -2,20 +2,23 @@
 
 Конфигурируемый API-шлюз для PostgreSQL. Маршруты FastAPI и схемы Pydantic генерируются из YAML — без жёстко заданных ORM-моделей. SQL выполняется через **asyncpg** с параметризованными запросами; идентификаторы таблиц и колонок берутся только из whitelist конфига.
 
+Аутентификация — **mTLS по DN сертификата** (`cert_dn`): техническая учётная запись (ТУЗ) идентифицируется по Subject DN клиентского сертификата, права берутся из `accounts.<DN>.grants`.
+
 ## Архитектура
 
 ```
-Client → FastAPI (dynamic routers) → AuthzPort + ACL + row filters → QueryBuilder → asyncpg (SET LOCAL app.tenant_id) → Postgres RLS
+Client → FastAPI (dynamic routers) → AuthzPort + ACL (grants) → QueryBuilder → asyncpg (SET LOCAL app.tenant_id) → Postgres RLS
                 ↑
-         config/config.yaml (startup load)
+         config/config.yaml + config/accounts.example.yaml (startup load)
 ```
 
 | Компонент | Роль |
 |-----------|------|
-| `config/config.yaml` | Ресурсы, поля, ACL, связи, фильтры, soft-delete |
-| `RequestContext` middleware | `header_stub`: trust + tenant/roles; `cert_dn`: `X-Client-Cert-DN` → ТУЗ |
-| `AuthzPort` | Подключаемая авторизация (`HeaderStubAuthz` / `CertDnAuthz`) |
-| `ACLChecker` | Права на операции и поля по ролям или `accounts.grants` |
+| `config/config.yaml` | Ресурсы, поля, связи, фильтры, soft-delete |
+| `config/accounts.example.yaml` | ТУЗ: `accounts.<DN>.grants` (операции и поля) |
+| `RequestContext` middleware | `X-Client-Cert-DN` → ТУЗ; опциональные `X-Session-Id`/`X-User-Id` |
+| `AuthzPort` | `CertDnAuthz` — ресурс доступен iff у аккаунта есть grant |
+| `ACLChecker` | Права на операции и поля из `accounts.grants` |
 | `QueryBuilder` | Безопасный SQL (quoted-идентификаторы из whitelist) |
 | Postgres RLS | `FORCE ROW LEVEL SECURITY` на демо-таблицах по `app.tenant_id` |
 | `openapi.yaml` | Экспортируемый артефакт (OpenAPI 3.1), не источник истины |
@@ -25,13 +28,12 @@ Client → FastAPI (dynamic routers) → AuthzPort + ACL + row filters → Query
 
 - **Python 3.11+** (для CI/локальных тестов на старых хостовых Python рекомендуется Docker)
 - Docker Compose (для Postgres и полного стека)
-- Переменная `GATEWAY_TRUST_TOKEN` **обязательна**, если `authz.mode=header_stub`
-- Режим `cert_dn` (ТУЗ): overlay `ACCOUNTS_CONFIG_PATH`, mTLS на ingress, заголовок `X-Client-Cert-DN` — см. `config/accounts.example.yaml` и `deploy/k8s/`
+- Реестр ТУЗ: `ACCOUNTS_CONFIG_PATH` (overlay с `accounts`), mTLS на ingress, заголовок `X-Client-Cert-DN` — см. `config/accounts.example.yaml` и `deploy/k8s/`
 
 ## Быстрый старт
 
 ```bash
-# Поднять Postgres + gateway (демо trust-токен задан в compose)
+# Поднять Postgres + gateway (accounts задан в compose)
 make up
 
 # Или локальный Python только против Postgres из compose:
@@ -40,51 +42,31 @@ python -m venv .venv && source .venv/bin/activate
 make install-dev
 export DATABASE_URL=postgresql://gateway:gateway@localhost:5432/gateway
 export CONFIG_PATH=config/config.yaml
-export GATEWAY_TRUST_TOKEN=demo-trust-token
-uvicorn pg_gateway.main:app --reload --port 8000
-```
-
-`GATEWAY_TRUST_TOKEN` **обязателен** при `authz.mode=header_stub`. Процесс не стартует, если переменная не задана или пуста.
-
-Health (без токена): `GET http://localhost:8000/health`  
-Ready (нужен токен): `GET http://localhost:8000/ready` с заголовком `X-Gateway-Token`
-
-## Демо-заголовки
-
-| Заголовок | Пример |
-|-----------|--------|
-| `X-Gateway-Token` | `demo-trust-token` (должен совпадать с `GATEWAY_TRUST_TOKEN`) |
-| `X-Tenant-Id` | `11111111-1111-1111-1111-111111111111` (tenant A) |
-| `X-Roles` | `admin` или `reader` (должны быть в `roles` ресурса) |
-
-Seed tenant B: `22222222-2222-2222-2222-222222222222`
-
-Заголовки tenant/roles принимаются **только после** успешной проверки trust-токена. Неизвестные роли отбрасываются; если валидных не осталось → 403.
-
-## Режим cert_dn (ТУЗ)
-
-Локально (поверх базового `config/config.yaml`):
-
-```bash
-export CONFIG_PATH=config/config.yaml
 export ACCOUNTS_CONFIG_PATH=config/accounts.example.yaml
-# GATEWAY_TRUST_TOKEN не нужен
 uvicorn pg_gateway.main:app --reload --port 8000
 ```
 
-```bash
-curl -s "http://localhost:8000/api/v1/orders" \
-  -H "X-Client-Cert-DN: CN=orders-reader,OU=tuz,O=Acme,C=RU" | jq
-```
+Health (без DN): `GET http://localhost:8000/health`  
+Ready (нужен DN): `GET http://localhost:8000/ready` с заголовком `X-Client-Cert-DN`
 
-Права берутся из `accounts.<DN>.grants`. `X-Roles` / `X-Tenant-Id` игнорируются. K8s: `deploy/k8s/`.
+## Заголовки
+
+| Заголовок | Пример | Описание |
+|-----------|--------|----------|
+| `X-Client-Cert-DN` | `CN=orders-reader,OU=tuz,O=Acme,C=RU` | Subject DN клиентского сертификата (mTLS на ingress) — обязателен |
+| `X-Session-Id` | `sess-123` | (необязательно) сквозной id сессии для трассировки |
+| `X-User-Id` | `user-456` | (необязательно) id пользователя/клиента |
+
+`X-Session-Id` и `X-User-Id` опциональны и не влияют на авторизацию: можно не передавать
+оба, передать только один или оба. Пустые значения игнорируются (`None` в контексте).
+
+Права берутся из `accounts.<DN>.grants`. K8s: `deploy/k8s/`.
 
 ## Демо curl-сценарии
 
 ```bash
-TENANT=11111111-1111-1111-1111-111111111111
-TOKEN=demo-trust-token
-H=(-H "X-Gateway-Token: $TOKEN" -H "X-Tenant-Id: $TENANT" -H "X-Roles: admin")
+DN="CN=admin,OU=tuz,O=Acme,C=RU"
+H=(-H "X-Client-Cert-DN: $DN")
 
 # Список users
 curl -s "http://localhost:8000/api/v1/users" "${H[@]}" | jq
@@ -115,7 +97,7 @@ curl -s -X POST "http://localhost:8000/api/v1/users/batch" "${H[@]}" \
   -H "Content-Type: application/json" \
   -d '{"items":[{"email":"e1@acme.test","full_name":"E1"},{"email":"e2@acme.test","full_name":"E2"}]}' | jq
 
-# Upsert (конфликт по tenant_id + email)
+# Upsert
 curl -s -X POST "http://localhost:8000/api/v1/users/upsert" "${H[@]}" \
   -H "Content-Type: application/json" \
   -d '{"items":[{"email":"alice@acme.test","full_name":"Alice Renamed","status":"active"}]}' | jq
@@ -130,11 +112,11 @@ curl -s -X POST "http://localhost:8000/api/v1/users/bulk-delete" "${H[@]}" \
   -H "Content-Type: application/json" \
   -d '{"filters":{"status":{"eq":"inactive"}}}' | jq
 
-# Нет trust-токена → 401
-curl -s "http://localhost:8000/api/v1/users" -H "X-Roles: admin" | jq
+# Нет DN → 401
+curl -s "http://localhost:8000/api/v1/users" | jq
 
-# Нет tenant → 403
-curl -s "http://localhost:8000/api/v1/users" -H "X-Gateway-Token: $TOKEN" -H "X-Roles: admin" | jq
+# Неизвестный DN → 401
+curl -s "http://localhost:8000/api/v1/users" -H "X-Client-Cert-DN: CN=ghost,O=Acme,C=RU" | jq
 ```
 
 ## Цели Makefile
@@ -162,13 +144,29 @@ make test
 
 ## Обзор конфигурации
 
-См. `config/config.yaml`. Типы полей: `string`, `int`, `float`, `bool`, `uuid`, `datetime`, `date`, `json`, `decimal`.
+См. `config/config.yaml` (ресурсы и схема) и `config/accounts.example.yaml` (ТУЗ/grants).
+Типы полей: `string`, `int`, `float`, `bool`, `uuid`, `datetime`, `date`, `json`, `decimal`.
 
-Переменные окружения — в `.env.example` (`DATABASE_URL`, `CONFIG_PATH`, `GATEWAY_TRUST_TOKEN` и др.).
+Переменные окружения — в `.env.example` (`DATABASE_URL`, `CONFIG_PATH`, `ACCOUNTS_CONFIG_PATH`, `RELOAD_INTERVAL` и др.).
+
+### Hot reload реестра accounts
+
+Реестр `accounts` (`ACCOUNTS_CONFIG_PATH`) опрашивается на изменения (по умолчанию раз в 2 сек,
+`RELOAD_INTERVAL`). При валидном обновлении новые grants/tenant применяются без рестарта; при
+невалидном файле сохраняется прежняя конфигурация и пишется предупреждение в лог.
 
 ## OpenSpec
 
-Поведенческие спецификации лежат в `openspec/specs/` (`gateway-routing`, `access-control`, `query-engine`, `errors`). Дополняют экспорт OpenAPI.
+Поведенческие спецификации лежат в `openspec/specs/` (`gateway-routing`, `access-control`, `query-engine`, `errors`, `versioning`). Дополняют экспорт OpenAPI.
+
+## Версионирование и депрекация
+
+- API версионируется через префикс пути (по умолчанию `/api/v1`); смена мажорной версии → новый префикс `/api/v2` параллельно со старым.
+- Релизы следуют SemVer; ломающее изменение контракта → major.
+- Депрекация: объявление в `CHANGELOG.md` → период депрекации (минимум один релиз) → удаление.
+- Изменения контракта фиксируются в [`CHANGELOG.md`](CHANGELOG.md); потребители уведомляются до релиза.
+
+Подробнее — `openspec/specs/versioning/spec.md`.
 
 ## Ограничения (v1)
 

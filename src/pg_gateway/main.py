@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
@@ -9,8 +10,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
-from pg_gateway.authz import CertDnAuthz, HeaderStubAuthz
+from pg_gateway.authz import CertDnAuthz
 from pg_gateway.config import AppConfig, Settings, load_config
+from pg_gateway.config.reloader import ConfigReloader
 from pg_gateway.db import Database
 from pg_gateway.errors import GatewayError, gateway_exception_handler, validation_exception_handler
 from pg_gateway.middleware import RequestContextMiddleware
@@ -18,25 +20,16 @@ from pg_gateway.routers import build_api_router
 from pg_gateway.service import ResourceService
 
 
-def _require_trust_token(config: AppConfig, settings: Settings) -> str:
-    token = (settings.gateway_trust_token or "").strip()
-    if config.authz.mode == "header_stub" and not token:
+def _account_tenants(config: AppConfig) -> dict[str, str]:
+    return {dn: account.tenant_id for dn, account in config.accounts.items()}
+
+
+def _require_accounts(config: AppConfig) -> None:
+    if not config.accounts:
         raise RuntimeError(
-            "GATEWAY_TRUST_TOKEN is required when authz.mode=header_stub "
-            "(set a non-empty shared secret; clients must send it as X-Gateway-Token)"
+            "at least one technical account (accounts) is required; "
+            "set ACCOUNTS_CONFIG_PATH to the accounts overlay"
         )
-    return token
-
-
-def _known_roles(config: AppConfig) -> frozenset[str]:
-    roles: set[str] = set()
-    for resource in config.resources.values():
-        roles.update(resource.roles.keys())
-    return frozenset(roles)
-
-
-def _known_accounts(config: AppConfig) -> frozenset[str]:
-    return frozenset(config.accounts.keys())
 
 
 def _resolve_config_path(path: str | Path) -> Path:
@@ -55,20 +48,20 @@ def create_app(
     connect_db: bool = True,
 ) -> FastAPI:
     settings = settings or Settings.from_env()
+    config_path: Path | None = None
+    accounts_path: Path | None = None
     if config is None:
         config_path = _resolve_config_path(settings.config_path)
-        accounts_path = None
         if settings.accounts_config_path:
             accounts_path = _resolve_config_path(settings.accounts_config_path)
         config = load_config(config_path, accounts_path=accounts_path)
 
-    trust_token = _require_trust_token(config, settings)
+    _require_accounts(config)
     db = Database(settings.database_url, statement_timeout_ms=config.gateway.query_timeout_ms)
-    if config.authz.mode == "cert_dn":
-        authz = CertDnAuthz(config)
-    else:
-        authz = HeaderStubAuthz(config)
+    authz = CertDnAuthz(config)
     service = ResourceService(config, db, authz)
+    # Mutable DN→tenant map, shared with middleware and updated on reload.
+    account_tenants = _account_tenants(config)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -79,9 +72,36 @@ def create_app(
         app.state.authz = authz
         if connect_db:
             await db.connect()
+
+        def apply_config(new_cfg: AppConfig) -> None:
+            service.app_config = new_cfg
+            authz.config = new_cfg
+            account_tenants.clear()
+            account_tenants.update(_account_tenants(new_cfg))
+            app.state.config = new_cfg
+
+        app.state.account_tenants = account_tenants
+        reloader: ConfigReloader | None = None
+        reload_task: asyncio.Task | None = None
+        if config_path is not None and accounts_path is not None:
+            reloader = ConfigReloader(
+                base_path=config_path,
+                accounts_path=accounts_path,
+                apply=apply_config,
+                interval=settings.reload_interval,
+            )
+            reload_task = asyncio.create_task(reloader.run())
+        app.state.reloader = reloader
+
         try:
             yield
         finally:
+            if reload_task is not None:
+                reload_task.cancel()
+                try:
+                    await reload_task
+                except asyncio.CancelledError:
+                    pass
             if connect_db:
                 await db.disconnect()
 
@@ -99,9 +119,7 @@ def create_app(
     app.add_middleware(
         RequestContextMiddleware,
         authz=config.authz,
-        trust_token=trust_token,
-        known_roles=_known_roles(config),
-        known_accounts=_known_accounts(config),
+        account_tenants=account_tenants,
     )
 
     @app.get("/health", tags=["system"], summary="Проверка живости")
@@ -140,39 +158,16 @@ def create_app(
         schema["openapi"] = "3.1.0"
         components = schema.setdefault("components", {})
         schemes = components.setdefault("securitySchemes", {})
-        if config.authz.mode == "cert_dn":
-            schemes["ClientCertDN"] = {
-                "type": "apiKey",
-                "in": "header",
-                "name": config.authz.client_dn_header,
-                "description": (
-                    "Subject DN клиентского сертификата (mTLS на ingress). "
-                    "X-Roles / X-Tenant-Id игнорируются. Права — из accounts.grants."
-                ),
-            }
-            schema["security"] = [{"ClientCertDN": []}]
-        else:
-            schemes["GatewayToken"] = {
-                "type": "apiKey",
-                "in": "header",
-                "name": config.authz.trust_header,
-                "description": (
-                    "Общий секрет (GATEWAY_TRUST_TOKEN). "
-                    "Обязателен для всех API-маршрутов."
-                ),
-            }
-            schemes["TenantId"] = {
-                "type": "apiKey",
-                "in": "header",
-                "name": config.authz.tenant_header,
-            }
-            schemes["Roles"] = {
-                "type": "apiKey",
-                "in": "header",
-                "name": config.authz.roles_header,
-                "description": "Роли через запятую из реестра ACL ресурса.",
-            }
-            schema["security"] = [{"GatewayToken": [], "TenantId": [], "Roles": []}]
+        schemes["ClientCertDN"] = {
+            "type": "apiKey",
+            "in": "header",
+            "name": config.authz.client_dn_header,
+            "description": (
+                "Subject DN клиентского сертификата (mTLS на ingress). "
+                "Права — из accounts.grants."
+            ),
+        }
+        schema["security"] = [{"ClientCertDN": []}]
         app.openapi_schema = schema
         return app.openapi_schema
 
